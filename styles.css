@@ -12,37 +12,39 @@ body {
     font-family: Helvetica, sans-serif;
 }
 
+.timer-progress {
+    margin: 16px 0;
+}
+
 .timer-container {
-    padding: 8px;
+    margin: 32px;
 }
 
 h2 {
     font-size: 32px;
-    padding: 16px;
+    margin: 8px 0;
 }
 
 .timer {
     font-size: 64px;
     font-weight: bold;
-    padding: 16px;
+    margin: 8px 0;
 }
 
 button {
     padding: 4px;
-    margin: 8px;
 }
 
 .timer-progress {
     display: flex;
     gap: 10px;
-    margin: 16px;
 }
 
-.timer-block {
+.block-marker {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background-color: #888;
+    background-color: #777;
 }
 
 .completed {
