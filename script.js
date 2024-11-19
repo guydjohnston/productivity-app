@@ -5,91 +5,91 @@ const breakBtn = document.getElementById("break-btn");
 const pauseBothBtn = document.getElementById("pause-both-btn");
 const blockMarkers = document.querySelectorAll(".block-marker");
 
-const totalFocusBlocks = 4;
-const focusBlockMinutes = 0.2;
-
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-let focusBlocksCompleted = 0;
-let focusTimerIsRunning = false;
+const totalFocusBlocks = 4;
+const focusBlockMinutes = 0.2;
 
-// Set the initial number of milliseconds left in the current focus session
-let focusMsLeft = focusBlockMinutes * msPerMinute;
+// Store the relevant variables for the focus timer in a state object
+const focusTimerState = {
+    blocksCompleted: 0,
+    isTimerRunning: false,
+    msLeftInBlock: focusBlockMinutes * msPerMinute,
+    blockEndTime: null
+};
 
-// The end time of the current focus session in millilseconds
-let focusEndTime;
-
-const completeFocusBlock = () => {
+const updateBlocksCompleted = (state) => {
     // Update the visual markers on the page to show the number of blocks completed
     blockMarkers.forEach((marker, index) => {
-        if (index < focusBlocksCompleted) marker.classList.add("completed");
-        else marker.classList.remove("completed");
+        if (index < state.blocksCompleted) {
+            marker.classList.add("completed")
+        } else {
+            marker.classList.remove("completed")
+        };
     });
     
     // Show when all the focus blocks are complete for the day and stop the timer
-    if (focusBlocksCompleted === totalFocusBlocks) {
+    if (state.blocksCompleted === totalFocusBlocks) {
         alert("Focus time completed for today!");
-        pauseFocusTimer();
+        pauseFocusTimer(state);
         return;
     };
-
-    focusMsLeft = focusBlockMinutes * msPerMinute;
-    startFocusTimer();
 };
 
-const updateFocusTimer = () => {
-    if (focusTimerIsRunning) {
+const updateFocusTimer = (state) => {
+    if (state.isTimerRunning) {
+        const currentTime = Date.now();
 
-        // Work out how many milliseconds are left in the current focus session
-        const msLeft = focusEndTime - Date.now();
-
-        if (msLeft <= 0) {
-            focusBlocksCompleted++;
-            completeFocusBlock();
-            return;
+        // If the focus block has ended, update the display of completed blocks and reset the timer
+        if (currentTime >= state.blockEndTime) {
+            state.blocksCompleted++;
+            updateBlocksCompleted(state);
+            state.msLeftInBlock = focusBlockMinutes * msPerMinute;
+            state.blockEndTime = currentTime + state.msLeftInBlock;
         }
+        
+        // Work out how many milliseconds are left in the current focus session
+        const msLeft = state.blockEndTime - currentTime;
 
         const minutesDisplayed = Math.floor(msLeft / msPerMinute);
-        const secondsDisplayed = (msLeft / msPerSecond) % 60;
+        const secondsDisplayed = Math.floor((msLeft / msPerSecond) % 60);
 
         // Update the focus timer display on the page
         focusMinutesEl.textContent = minutesDisplayed;
-        focusSecondsEl.textContent = secondsDisplayed.toFixed(0);
+        focusSecondsEl.textContent = secondsDisplayed;
 
         // Run this function again in one second
-        setTimeout(updateFocusTimer, 1000);
+        setTimeout(() => updateFocusTimer(state), 1000);
     }
 };
 
-const startFocusTimer = () => {
-    console.log("starting focus timer");
-    focusTimerIsRunning = true;
+const startFocusTimer = (state) => {
     focusBtn.textContent = "Pause Focus Timer";
-
+    state.isTimerRunning = true;
+    
     // Set the end time in milliseconds for the current focus block
-    console.log("focus time left in milliseconds is", focusMsLeft);
-    focusEndTime = Date.now() + focusMsLeft;
-    console.log("focus end time is", focusEndTime)
+    state.blockEndTime = Date.now() + state.msLeftInBlock;
 
-    updateFocusTimer();
+    updateFocusTimer(state);
 };
 
-const pauseFocusTimer = () => {
-    console.log("pausing focus timer");
-    focusTimerIsRunning = false;
+const pauseFocusTimer = (state) => {
     focusBtn.textContent = "Start Focus Timer";
+    state.isTimerRunning = false;
 
     // Save the number of milliseconds left in the current focus block, for when the focus timer is restarted
-    focusMsLeft = focusEndTime - Date.now();
-    console.log("focus time left in milliseconds is", focusMsLeft);
+    state.msLeftInBlock = state.blockEndTime - Date.now();
+
+    // Unset the end time for the current focus block until the focus timer is started again
+    state.blockEndTime = null;
 }
 
 const startOrPauseFocusTimer = () => {
-    if (!focusTimerIsRunning) {
-        startFocusTimer();
+    if (!focusTimerState.isTimerRunning) {
+        startFocusTimer(focusTimerState);
     } else {
-        pauseFocusTimer()
+        pauseFocusTimer(focusTimerState);
     };
 };
 
