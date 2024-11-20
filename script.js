@@ -9,7 +9,7 @@ const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
 const totalFocusBlocks = 4;
-const focusBlockMinutes = 0.2;
+const focusBlockMinutes = 0.1;
 
 // Store the relevant variables for the focus timer in a state object
 const focusTimerState = {
@@ -31,8 +31,10 @@ const updateBlocksCompleted = (state) => {
     
     // Show when all the focus blocks are complete for the day and stop the timer
     if (state.blocksCompleted === totalFocusBlocks) {
-        alert("Focus time completed for today!");
-        pauseFocusTimer(state);
+        setTimeout(() => {
+            alert("Focus time completed for today!");
+            pauseFocusTimer(state);
+        }, 100);
         return;
     };
 };
@@ -52,8 +54,8 @@ const updateFocusTimer = (state) => {
         // Work out how many milliseconds are left in the current focus session
         const msLeft = state.blockEndTime - currentTime;
 
-        const minutesDisplayed = Math.floor(msLeft / msPerMinute);
-        const secondsDisplayed = Math.floor((msLeft / msPerSecond) % 60);
+        const minutesDisplayed = Math.floor(msLeft / msPerMinute).toString().padStart(2, "0");
+        const secondsDisplayed = Math.round((msLeft / msPerSecond) % 60).toString().padStart(2, "0");
 
         // Update the focus timer display on the page
         focusMinutesEl.textContent = minutesDisplayed;
