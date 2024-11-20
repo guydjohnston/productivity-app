@@ -9,7 +9,7 @@ const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
 const totalFocusBlocks = 4;
-const focusBlockMinutes = 0.1;
+const focusBlockMinutes = 100;
 
 // Store the relevant variables for the focus timer in a state object
 const focusTimerState = {
