@@ -11,33 +11,40 @@ const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
 const totalFocusBlocks = 4;
-const focusBlockMinutes = 0.1;
+const focusBlockMinutes = 100;
 
-// Set the length of each break block to always be 1/5 of the length of a focus block
-const breakBlockMinutes = focusBlockMinutes / 5;
+// Class for the focus and break timers
+class TimerState {
+    constructor(name, fullBlockMinutes, button, minutesElement, secondsElement) {
+        this.name = name;
+        this.blocksCompleted = 0;
+        this.isTimerRunning = false;
+        this.fullBlockMinutes = fullBlockMinutes;
+        this.msLeftInBlock = fullBlockMinutes * msPerMinute;
+        this.blockEndTime = null;
+        this.button = button;
+        this.minutesElement = minutesElement;
+        this.secondsElement = secondsElement;
+    }
+}
 
-// Store the relevant variables for the focus timer in a state object
-const focusTimerState = {
-    name: "Focus",
-    blocksCompleted: 0,
-    isTimerRunning: false,
-    msLeftInBlock: focusBlockMinutes * msPerMinute,
-    blockEndTime: null,
-    button: focusBtn,
-    minutesElement: focusMinutesEl,
-    secondsElement: focusSecondsEl
-};
+// Create timer state object for the focus timer
+const focusTimerState = new TimerState(
+    "Focus",
+    focusBlockMinutes,
+    focusBtn,
+    focusMinutesEl,
+    focusSecondsEl
+);
 
-// Store the relevant variables for the break timer in a state object
-const breakTimerState = {
-    name: "Break",
-    isTimerRunning: false,
-    msLeftInBlock: breakBlockMinutes * msPerMinute,
-    blockEndTime: null,
-    button: breakBtn,
-    minutesElement: breakMinutesEl,
-    secondsElement: breakSecondsEl
-};
+// Create timer state object for the break timer
+const breakTimerState = new TimerState(
+    "Break",
+    focusBlockMinutes / 5, // Set the length of each break block to always be 1/5 of the length of a focus block
+    breakBtn,
+    breakMinutesEl,
+    breakSecondsEl
+);
 
 const updateBlocksCompleted = (state) => {
     // Update the visual markers on the page to show the number of blocks completed
@@ -65,7 +72,7 @@ const updateTimer = (state) => {
 
         // If the timer has ended, reset the time to start the next block
         if (currentTime >= state.blockEndTime) {
-            state.msLeftInBlock = focusBlockMinutes * msPerMinute;
+            state.msLeftInBlock = state.blockMinutes * msPerMinute;
             state.blockEndTime = currentTime + state.msLeftInBlock;
 
             // If the focus block has ended, update the display of completed blocks
@@ -73,7 +80,7 @@ const updateTimer = (state) => {
                 state.blocksCompleted++;
                 updateBlocksCompleted(state);
             }
-        }
+        } 
 
         // Work out how many milliseconds are left in the current focus session
         const msLeft = state.blockEndTime - currentTime;
@@ -91,12 +98,22 @@ const updateTimer = (state) => {
 };
 
 const startTimer = (state) => {
+    // Pause the break timer when starting the focus timer, and vice-verse
+    if (state.name === "Focus") {
+        pauseTimer(breakTimerState);
+    } else {
+        pauseTimer(focusTimerState);
+    }
+
     state.button.textContent = `Pause ${state.name} Timer`;
     state.isTimerRunning = true;
 
     // Set the end time in milliseconds for the current focus block
-    state.blockEndTime = Date.now() + state.msLeftInBlock;
+    if (!state.blockEndTime) {
+        state.blockEndTime = Date.now() + state.msLeftInBlock;
+    }
 
+    // Start updating the timer recursively
     updateTimer(state);
 };
 
@@ -105,7 +122,9 @@ const pauseTimer = (state) => {
     state.isTimerRunning = false;
 
     // Save the number of milliseconds left in the current focus block, for when the focus timer is restarted
-    state.msLeftInBlock = state.blockEndTime - Date.now();
+    if (state.blockEndTime) {
+        state.msLeftInBlock = state.blockEndTime - Date.now();
+    }
 
     // Unset the end time for the current focus block until the focus timer is started again
     state.blockEndTime = null;
