@@ -4,24 +4,23 @@ const breakMinutesEl = document.getElementById("break-minutes");
 const breakSecondsEl = document.getElementById("break-seconds");
 const focusBtn = document.getElementById("focus-btn");
 const breakBtn = document.getElementById("break-btn");
-const pauseBothBtn = document.getElementById("pause-both-btn");
-const blockMarkers = document.querySelectorAll(".block-marker");
+const sessionMarkers = document.querySelectorAll(".session-marker");
 
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusBlockMinutes = 100;
-const totalFocusBlocks = 4;
+const focusSessionMinutes = 0.1;
+const totalFocusSessions = 4;
 
 // Class for the focus and break timers
 class TimerState {
-    constructor(name, fullBlockMinutes, button, minutesElement, secondsElement) {
+    constructor(name, fullSessionMinutes, button, minutesElement, secondsElement) {
         this.name = name;
-        this.blocksCompleted = 0;
+        this.sessionsCompleted = 0;
         this.isTimerRunning = false;
-        this.fullBlockMinutes = fullBlockMinutes;
-        this.msLeftInBlock = fullBlockMinutes * msPerMinute;
-        this.blockEndTime = null;
+        this.fullSessionMinutes = fullSessionMinutes;
+        this.msLeftInSession = fullSessionMinutes * msPerMinute;
+        this.sessionEndTime = null;
         this.button = button;
         this.minutesElement = minutesElement;
         this.secondsElement = secondsElement;
@@ -31,7 +30,7 @@ class TimerState {
 // Create timer state object for the focus timer
 const focusTimerState = new TimerState(
     "Focus",
-    focusBlockMinutes,
+    focusSessionMinutes,
     focusBtn,
     focusMinutesEl,
     focusSecondsEl
@@ -40,53 +39,58 @@ const focusTimerState = new TimerState(
 // Create timer state object for the break timer
 const breakTimerState = new TimerState(
     "Break",
-    focusBlockMinutes / 5, // Set the length of each break block to always be 1/5 the length of a focus block
+    focusSessionMinutes / 5, // Set the length of each break session to always be 1/5 the length of a focus session
     breakBtn,
     breakMinutesEl,
     breakSecondsEl
 );
 
-const updateBlocksCompleted = (state) => {
-    // Update the visual markers on the page to show the number of blocks completed
-    blockMarkers.forEach((marker, index) => {
-        if (index < state.blocksCompleted) {
+const updateSessionsCompleted = (state) => {
+    // Update the visual markers on the page to show the number of sessions completed
+    sessionMarkers.forEach((marker, index) => {
+        if (index < state.sessionsCompleted) {
             marker.classList.add("completed")
         } else {
             marker.classList.remove("completed")
         };
     });
 
-    // Show when all the focus blocks are complete for the day, stop the focus timer and reset number of blocks completed
-    if (state.blocksCompleted === totalFocusBlocks) {
+    // Show when all the focus sessions are complete for the day, stop the focus timer and reset number of sessions completed
+    if (state.sessionsCompleted === totalFocusSessions) {
         setTimeout(() => {
             alert("Focus time completed for today!");
             pauseTimer(state);
-            state.blocksCompleted = 0;
-            updateBlocksCompleted(state);
+            state.sessionsCompleted = 0;
+            updateSessionsCompleted(state);
         }, 100);
     };
 };
 
 const updateTimer = (state) => {
+    // Only continue running the timer if it's toggled to be running
     if (state.isTimerRunning) {
         const currentTime = Date.now();
 
-        // If the timer has ended, reset the time to start the next block
-        if (currentTime >= state.blockEndTime) {
-            state.blockEndTime = currentTime + state.fullBlockMinutes * msPerMinute;
+        // If the timer has ended, reset the time to start the next session
+        if (currentTime >= state.sessionEndTime) {
+            state.sessionEndTime = currentTime + state.fullSessionMinutes * msPerMinute;
 
-            // If a focus block has ended (except the final block), alert the user and update the display of completed blocks
+            // If a focus session has ended (except the final session), alert the user and update the display of completed sessions
             if (state.name === "Focus") {
-                state.blocksCompleted++;
-                if (state.blocksCompleted < totalFocusBlocks) {
+                state.sessionsCompleted++;
+                if (state.sessionsCompleted < totalFocusSessions) {
                     alert("Current focus session has finished. Time for a break!");
                 }
-                updateBlocksCompleted(state);
+                updateSessionsCompleted(state);
             }
+            /* // If a break session has ended, alert the user and begin or resume the next focus session
+            else if (state.name === "Break") {
+
+            } */
         }
 
         // Work out how many milliseconds are left in the current focus session
-        const msLeft = state.blockEndTime - currentTime;
+        const msLeft = state.sessionEndTime - currentTime;
 
         const minutesDisplayed = Math.floor(msLeft / msPerMinute).toString().padStart(2, "0");
         const secondsDisplayed = Math.round((msLeft / msPerSecond) % 60).toString().padStart(2, "0");
@@ -111,8 +115,8 @@ const startTimer = (state) => {
     state.button.textContent = `Pause ${state.name} Timer`;
     state.isTimerRunning = true;
 
-    // Set the end time in milliseconds for the current focus block
-    state.blockEndTime = Date.now() + state.msLeftInBlock;
+    // Set the end time in milliseconds for the current focus session
+    state.sessionEndTime = Date.now() + state.msLeftInSession;
 
     // Start updating the timer recursively
     updateTimer(state);
@@ -122,11 +126,11 @@ const pauseTimer = (state) => {
     state.button.textContent = `Start ${state.name} Timer`;
     state.isTimerRunning = false;
 
-    // Save the number of milliseconds left in the current focus block, for when the focus timer is restarted
-    state.msLeftInBlock = state.blockEndTime - Date.now();
+    // Save the number of milliseconds left in the current focus sessions, for when the focus timer is restarted
+    state.msLeftInSession = state.sessionEndTime - Date.now();
 
-    // Unset the end time for the current focus block until the focus timer is started again
-    state.blockEndTime = null;
+    // Unset the end time for the current focus session until the focus timer is started again
+    state.sessionEndTime = null;
 }
 
 const startOrPauseTimer = (state) => {
