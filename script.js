@@ -10,7 +10,7 @@ const blockMarkers = document.querySelectorAll(".block-marker");
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusBlockMinutes = 0.2;
+const focusBlockMinutes = 100;
 const totalFocusBlocks = 4;
 
 // Class for the focus and break timers
@@ -40,7 +40,7 @@ const focusTimerState = new TimerState(
 // Create timer state object for the break timer
 const breakTimerState = new TimerState(
     "Break",
-    focusBlockMinutes / 5, // Set the length of each break block to always be 1/5 of the length of a focus block
+    focusBlockMinutes / 5, // Set the length of each break block to always be 1/5 the length of a focus block
     breakBtn,
     breakMinutesEl,
     breakSecondsEl
@@ -112,9 +112,7 @@ const startTimer = (state) => {
     state.isTimerRunning = true;
 
     // Set the end time in milliseconds for the current focus block
-    // if (!state.blockEndTime) {
     state.blockEndTime = Date.now() + state.msLeftInBlock;
-    // }
 
     // Start updating the timer recursively
     updateTimer(state);
@@ -125,9 +123,7 @@ const pauseTimer = (state) => {
     state.isTimerRunning = false;
 
     // Save the number of milliseconds left in the current focus block, for when the focus timer is restarted
-    // if (state.blockEndTime) {
     state.msLeftInBlock = state.blockEndTime - Date.now();
-    // }
 
     // Unset the end time for the current focus block until the focus timer is started again
     state.blockEndTime = null;
