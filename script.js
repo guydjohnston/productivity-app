@@ -11,7 +11,7 @@ const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
 const totalFocusBlocks = 4;
-const focusBlockMinutes = 100;
+const focusBlockMinutes = 0.1;
 
 // Class for the focus and break timers
 class TimerState {
@@ -56,13 +56,14 @@ const updateBlocksCompleted = (state) => {
         };
     });
 
-    // Show when all the focus blocks are complete for the day and stop the timer
+    // Show when all the focus blocks are complete for the day, stop the focus timer and reset number of blocks completed
     if (state.blocksCompleted === totalFocusBlocks) {
         setTimeout(() => {
             alert("Focus time completed for today!");
             pauseTimer(state);
+            state.blocksCompleted = 0;
+            updateBlocksCompleted(state);
         }, 100);
-        return;
     };
 };
 
@@ -72,15 +73,14 @@ const updateTimer = (state) => {
 
         // If the timer has ended, reset the time to start the next block
         if (currentTime >= state.blockEndTime) {
-            state.msLeftInBlock = state.blockMinutes * msPerMinute;
-            state.blockEndTime = currentTime + state.msLeftInBlock;
+            state.blockEndTime = currentTime + state.fullBlockMinutes * msPerMinute;
 
-            // If the focus block has ended, update the display of completed blocks
+            // If a focus block has ended, update the display of completed blocks
             if (state.name === "Focus") {
                 state.blocksCompleted++;
                 updateBlocksCompleted(state);
             }
-        } 
+        }
 
         // Work out how many milliseconds are left in the current focus session
         const msLeft = state.blockEndTime - currentTime;
@@ -99,9 +99,9 @@ const updateTimer = (state) => {
 
 const startTimer = (state) => {
     // Pause the break timer when starting the focus timer, and vice-verse
-    if (state.name === "Focus") {
+    if (state.name === "Focus" && breakTimerState.isTimerRunning === true) {
         pauseTimer(breakTimerState);
-    } else {
+    } else if (state.name === "Break" && focusTimerState.isTimerRunning === true) {
         pauseTimer(focusTimerState);
     }
 
@@ -109,9 +109,9 @@ const startTimer = (state) => {
     state.isTimerRunning = true;
 
     // Set the end time in milliseconds for the current focus block
-    if (!state.blockEndTime) {
-        state.blockEndTime = Date.now() + state.msLeftInBlock;
-    }
+    // if (!state.blockEndTime) {
+    state.blockEndTime = Date.now() + state.msLeftInBlock;
+    // }
 
     // Start updating the timer recursively
     updateTimer(state);
@@ -122,9 +122,9 @@ const pauseTimer = (state) => {
     state.isTimerRunning = false;
 
     // Save the number of milliseconds left in the current focus block, for when the focus timer is restarted
-    if (state.blockEndTime) {
-        state.msLeftInBlock = state.blockEndTime - Date.now();
-    }
+    // if (state.blockEndTime) {
+    state.msLeftInBlock = state.blockEndTime - Date.now();
+    // }
 
     // Unset the end time for the current focus block until the focus timer is started again
     state.blockEndTime = null;
