@@ -10,8 +10,8 @@ const blockMarkers = document.querySelectorAll(".block-marker");
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
+const focusBlockMinutes = 0.2;
 const totalFocusBlocks = 4;
-const focusBlockMinutes = 0.1;
 
 // Class for the focus and break timers
 class TimerState {
@@ -75,9 +75,12 @@ const updateTimer = (state) => {
         if (currentTime >= state.blockEndTime) {
             state.blockEndTime = currentTime + state.fullBlockMinutes * msPerMinute;
 
-            // If a focus block has ended, update the display of completed blocks
+            // If a focus block has ended (except the final block), alert the user and update the display of completed blocks
             if (state.name === "Focus") {
                 state.blocksCompleted++;
+                if (state.blocksCompleted < totalFocusBlocks) {
+                    alert("Current focus session has finished. Time for a break!");
+                }
                 updateBlocksCompleted(state);
             }
         }
