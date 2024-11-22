@@ -45,6 +45,10 @@ const breakTimerState = new TimerState(
     breakSecondsEl
 );
 
+const resetTimer = (state) => {
+    state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
+};
+
 const updateSessionsCompleted = (state) => {
     // Update the visual markers on the page to show the number of sessions completed
     sessionMarkers.forEach((marker, index) => {
@@ -60,7 +64,7 @@ const updateSessionsCompleted = (state) => {
         setTimeout(() => {
             alert("Focus time completed for today!");
             pauseTimer(state);
-            state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
+            resetTimer(state);
             state.sessionsCompleted = 0;
             updateSessionsCompleted(state);
         }, 100);
@@ -72,7 +76,7 @@ const updateTimer = (state) => {
     if (state.isTimerRunning) {
         const currentTime = Date.now();
 
-        // If the timer has ended, reset the time to start the next session
+        // If the timer has ended, reset the session end time to start the next session
         if (currentTime >= state.sessionEndTime) {
             state.sessionEndTime = currentTime + state.fullSessionMinutes * msPerMinute;
 
@@ -84,10 +88,14 @@ const updateTimer = (state) => {
                 }
                 updateSessionsCompleted(state);
             }
-            /* // If a break session has ended, alert the user and begin or resume the next focus session
+            // If a break session has ended, alert the user, stop and reset the break timer and begin or resume the next focus session
             else if (state.name === "Break") {
-
-            } */
+                alert("Break session finished. Back to work!");
+                pauseTimer(state);
+                resetTimer(state);
+                startTimer(focusTimerState);
+                return;
+            }
         }
 
         // Work out how many milliseconds are left in the current focus session
