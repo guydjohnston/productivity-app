@@ -49,17 +49,18 @@ const updateSessionsCompleted = (state) => {
     // Update the visual markers on the page to show the number of sessions completed
     sessionMarkers.forEach((marker, index) => {
         if (index < state.sessionsCompleted) {
-            marker.classList.add("completed")
+            marker.classList.add("completed");
         } else {
-            marker.classList.remove("completed")
+            marker.classList.remove("completed");
         };
     });
 
-    // Show when all the focus sessions are complete for the day, stop the focus timer and reset number of sessions completed
+    // Show when all the focus sessions are complete for the day, alert the user, stop the focus timer and reset time left and number of sessions completed
     if (state.sessionsCompleted === totalFocusSessions) {
         setTimeout(() => {
             alert("Focus time completed for today!");
             pauseTimer(state);
+            state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
             state.sessionsCompleted = 0;
             updateSessionsCompleted(state);
         }, 100);
