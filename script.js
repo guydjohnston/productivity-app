@@ -10,7 +10,7 @@ const breakSessionMarkers = document.querySelectorAll(".break-session-marker");
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusSessionMinutes = 0.1;
+const focusSessionMinutes = 0.2;
 const totalFocusSessions = 4;
 
 // Class for the focus and break timers
@@ -69,6 +69,7 @@ const updateSessionsDisplay = (state) => {
 const resetTimerEndTime = (state) => {
     const currentTime = Date.now();
     state.sessionEndTime = currentTime + state.fullSessionMinutes * msPerMinute;
+    console.log(`reset ${state.name} timer end time to ${state.sessionEndTime}. current time is ${currentTime}`);
 };
 
 const endTimerSession = (state) => {
@@ -89,7 +90,7 @@ const endTimerSession = (state) => {
         }
         // Otherwise pause the break timer and start the next focus session
         else {
-            alert("Break session finished. Back to work!");
+            // alert("Break session finished. Back to work!");
             pauseTimer(breakTimerState);
             startTimer(focusTimerState);
             return;
@@ -108,9 +109,9 @@ const endTimerSession = (state) => {
             }, 100);
             return;
         }
-        // Otherwise alert the user and start the next focus session
+        // Otherwise start the next focus session
         else {
-            alert("Focus session finished. Time for a break!");
+            // alert("Focus session finished. Time for a break!");
             
             // Continue updating the focus timer recursively
             updateTimer(focusTimerState);
@@ -146,25 +147,19 @@ const updateTimer = (state) => {
 };
 
 const startTimer = (state) => {
-    // If there all the break sessions are completed, don't start the break timer
-    if (state.name === "Break") {
-        if (state.sessionsCompleted >= totalFocusSessions - 1) {
-            alert("No more break sessions left!");
+    // Pause the break timer when starting the focus timer, and vice-verse
+    if (state.name === "Focus") {
+        if (breakTimerState.isTimerRunning === true) {
             pauseTimer(breakTimerState);
-            startTimer(focusTimerState);
-            return;
+        }
+    } else if (state.name === "Break") {
+        if (focusTimerState.isTimerRunning === true) {
+            pauseTimer(focusTimerState);
         }
     }
-
+    
     // Set the end time in milliseconds for the current focus session
     state.sessionEndTime = Date.now() + state.msLeftInSession;
-
-    // Pause the break timer when starting the focus timer, and vice-verse
-    if (state.name === "Focus" && breakTimerState.isTimerRunning === true) {
-        pauseTimer(breakTimerState);
-    } else if (state.name === "Break" && focusTimerState.isTimerRunning === true) {
-        pauseTimer(focusTimerState);
-    }
 
     state.button.textContent = `Pause ${state.name} Timer`;
     state.isTimerRunning = true;
@@ -185,6 +180,14 @@ const pauseTimer = (state) => {
 }
 
 const startOrPauseTimer = (state) => {
+    // If all the break sessions are completed, don't start the break timer
+    if (state.name === "Break") {
+        if (breakTimerState.sessionsCompleted >= totalFocusSessions - 1) {
+            alert("No more break sessions left!");
+            return;
+        }
+    }
+    
     if (!state.isTimerRunning) {
         startTimer(state);
     } else {
