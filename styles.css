@@ -40,7 +40,8 @@ button {
     gap: 10px;
 }
 
-.session-marker {
+.focus-session-marker,
+.break-session-marker {
     width: 20px;
     height: 20px;
     border-radius: 50%;
