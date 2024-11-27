@@ -50,6 +50,13 @@ const breakTimerState = new TimerState(
     "break-session-marker"
 );
 
+const saveTimerState = (state) => {
+    const timerName = state.name.toLowerCase() + "Timer";
+    localStorage.setItem(timerName, JSON.stringify(state));
+    const savedTimerState = JSON.parse(localStorage.getItem(timerName));
+    console.log("timer state saved then retrieved is", savedTimerState);
+};
+
 const fullyResetTimer = (state) => {
     pauseTimer(state);
     state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
@@ -73,7 +80,6 @@ const updateSessionsDisplay = (state) => {
 const resetTimerEndTime = (state) => {
     const currentTime = Date.now();
     state.sessionEndTime = currentTime + state.fullSessionMinutes * msPerMinute;
-    console.log(`reset ${state.name} timer end time to ${state.sessionEndTime}. current time is ${currentTime}`);
 };
 
 const endTimerSession = (state) => {
@@ -182,6 +188,8 @@ const pauseTimer = (state) => {
 }
 
 const startOrPauseTimer = (state) => {
+    saveTimerState(state);
+    
     // If all the break sessions are completed, don't start the break timer
     if (state.name === "Break") {
         if (breakTimerState.sessionsCompleted >= totalFocusSessions - 1) {
