@@ -50,24 +50,18 @@ const breakTimerState = new TimerState(
     "break-session-marker"
 );
 
-const saveTimerState = (state) => {
-    const timerName = state.name.toLowerCase() + "Timer";
-    localStorage.setItem(timerName, JSON.stringify(state));
-    const savedTimerState = JSON.parse(localStorage.getItem(timerName));
-    console.log("timer state saved then retrieved is", savedTimerState);
+// Update the minutes and seconds shown on the timer display
+const updateCountdownDisplay = (state, msToDisplay) => {
+    const minutesDisplayed = Math.floor(msToDisplay / msPerMinute).toString().padStart(2, "0");
+    const secondsDisplayed = Math.round((msToDisplay / msPerSecond) % 60).toString().padStart(2, "0");
+
+    // Update the focus timer display on the page
+    state.minutesElement.textContent = minutesDisplayed;
+    state.secondsElement.textContent = secondsDisplayed;
 };
 
-const fullyResetTimer = (state) => {
-    pauseTimer(state);
-    state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
-    state.sessionsCompleted = 0;
-    updateSessionsDisplay(state);
-    state.minutesElement.textContent = "00";
-    state.secondsElement.textContent = "00";
-};
-
+// Update the visual markers on the page to show the number of focus or break sessions completed
 const updateSessionsDisplay = (state) => {
-    // Update the visual markers on the page to show the number of focus or break sessions completed
     state.sessionMarkers.forEach((marker, index) => {
         if (index < state.sessionsCompleted) {
             marker.classList.add("completed");
@@ -77,17 +71,56 @@ const updateSessionsDisplay = (state) => {
     });
 };
 
+const saveTimerState = (state) => {
+    const timerName = state.name.toLowerCase() + "Timer";
+    
+    // An object with the variables that need to be saved for each timer when the browser window is closed
+    const timerStateSaved = {
+        sessionsCompleted: state.sessionsCompleted,
+        isTimerRunning: state.isTimerRunning,
+        msLeftInSession: state.msLeftInSession,
+        sessionEndTime: state.sessionEndTime
+    };
+    
+    localStorage.setItem(timerName, JSON.stringify(timerStateSaved));
+    console.log(`${timerName} state saved is`, timerStateSaved);
+};
+
+const loadTimerState = (state) => {
+    const timerName = state.name.toLowerCase() + "Timer";
+
+    const timerStateLoaded = JSON.parse(localStorage.getItem(timerName));
+    console.log(`${timerName} state loaded is`, timerStateLoaded);
+
+    // If there was data saved in local storage, update timer state object using values from local storage then update time displayed and display of sessions completed
+    if (timerStateLoaded) {
+        Object.assign(state, timerStateLoaded);
+    }
+};
+
+const fullyResetTimer = (state) => {
+    pauseTimer(state);
+    state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
+    state.sessionsCompleted = 0;
+    updateSessionsDisplay(state);
+    state.minutesElement.textContent = "00";
+    state.secondsElement.textContent = "00";
+    saveTimerState(state);
+};
+
 const resetTimerEndTime = (state) => {
     const currentTime = Date.now();
     state.sessionEndTime = currentTime + state.fullSessionMinutes * msPerMinute;
+    saveTimerState(state);
 };
 
 const endTimerSession = (state) => {
     // Reset the time left for the next session
     resetTimerEndTime(state);
 
-    // Update the number of sessions completed and the visual display
+    // Update the number of sessions completed and display it on the screen
     state.sessionsCompleted++;
+    saveTimerState(state);
     updateSessionsDisplay(state);
 
     if (state.name === "Break") {
@@ -117,11 +150,8 @@ const endTimerSession = (state) => {
             }, 100);
             return;
         }
-        // Otherwise start the next focus session
+        // Otherwise continue with the next focus session
         else {
-            // alert("Focus session finished. Time for a break!");
-
-            // Continue updating the focus timer recursively
             updateTimer(focusTimerState);
         }
     };
@@ -132,21 +162,17 @@ const updateTimer = (state) => {
     if (state.isTimerRunning) {
         const currentTime = Date.now();
 
-        // If the timer has ended, run the logic to determine what to do nex and don't update the timer display
+        // If the timer has ended, determine what to do next and don't update the timer display
         if (currentTime >= state.sessionEndTime) {
             endTimerSession(state);
             return;
         }
 
-        // Work out how many milliseconds are left in the current focus session
-        const msLeft = state.sessionEndTime - currentTime;
+        // Work out how many milliseconds there are between now and the session end time
+        const msToDisplay = state.sessionEndTime - currentTime;
 
-        const minutesDisplayed = Math.floor(msLeft / msPerMinute).toString().padStart(2, "0");
-        const secondsDisplayed = Math.round((msLeft / msPerSecond) % 60).toString().padStart(2, "0");
-
-        // Update the focus timer display on the page
-        state.minutesElement.textContent = minutesDisplayed;
-        state.secondsElement.textContent = secondsDisplayed;
+        // Update the minutes and seconds displayed
+        updateCountdownDisplay(state, msToDisplay);
 
         // Run this function again in one second
         setTimeout(() => updateTimer(state), 1000);
@@ -155,22 +181,22 @@ const updateTimer = (state) => {
 };
 
 const startTimer = (state) => {
-    // Pause the break timer when starting the focus timer, and vice-verse
+    // Pause the break timer when starting the focus timer, and vice-versa
     if (state.name === "Focus") {
-        if (breakTimerState.isTimerRunning === true) {
-            pauseTimer(breakTimerState);
-        }
+        if (breakTimerState.isTimerRunning === true) pauseTimer(breakTimerState);
     } else if (state.name === "Break") {
-        if (focusTimerState.isTimerRunning === true) {
-            pauseTimer(focusTimerState);
-        }
+        if (focusTimerState.isTimerRunning === true) pauseTimer(focusTimerState);
     }
 
     // Set the end time in milliseconds for the current focus session
     state.sessionEndTime = Date.now() + state.msLeftInSession;
 
+    // Unset the time left in the current session until the timer is paused again
+    state.msLeftInSession = null;
+
     state.button.textContent = `Pause ${state.name} Timer`;
     state.isTimerRunning = true;
+    saveTimerState(state);
 
     // Start updating the timer recursively
     updateTimer(state);
@@ -185,11 +211,10 @@ const pauseTimer = (state) => {
 
     state.button.textContent = `Start ${state.name} Timer`;
     state.isTimerRunning = false;
+    saveTimerState(state);
 }
 
 const startOrPauseTimer = (state) => {
-    saveTimerState(state);
-    
     // If all the break sessions are completed, don't start the break timer
     if (state.name === "Break") {
         if (breakTimerState.sessionsCompleted >= totalFocusSessions - 1) {
@@ -206,13 +231,42 @@ const startOrPauseTimer = (state) => {
     };
 };
 
-focusBtn.addEventListener("click", () => startOrPauseTimer(focusTimerState));
-breakBtn.addEventListener("click", () => startOrPauseTimer(breakTimerState));
-
 // Fully reset both timers
 const resetBothTimers = () => {
     fullyResetTimer(focusTimerState);
     fullyResetTimer(breakTimerState);
 };
 
+const resumeRunningTimer = (state) => {
+    state.button.textContent = `Pause ${state.name} Timer`;
+
+    // Update both sessions displays
+    updateSessionsDisplay(focusTimerState);
+    updateSessionsDisplay(breakTimerState);
+
+    updateTimer(state);
+};
+
+window.onload = (event) => {
+    // When the page loads, load stored data from local storage for both timers
+    loadTimerState(focusTimerState);
+    loadTimerState(breakTimerState);
+
+    // If one of the timers was running, resume the running timer
+    if (focusTimerState.isTimerRunning) {
+        resumeRunningTimer(focusTimerState);
+    } else if (breakTimerState.isTimerRunning) {
+        resumeRunningTimer(breakTimerState);
+    }
+    // Otherwise, update both displays using the time left in the session and update both sessions displays
+    else {
+        updateCountdownDisplay(focusTimerState, focusTimerState.msLeftInSession);
+        updateCountdownDisplay(breakTimerState, breakTimerState.msLeftInSession);
+        updateSessionsDisplay(focusTimerState);
+        updateSessionsDisplay(breakTimerState);
+    }
+};
+
+focusBtn.addEventListener("click", () => startOrPauseTimer(focusTimerState));
+breakBtn.addEventListener("click", () => startOrPauseTimer(breakTimerState));
 resetBtn.addEventListener("click", resetBothTimers);
