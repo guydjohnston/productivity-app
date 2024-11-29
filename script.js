@@ -6,7 +6,11 @@ const focusBtn = document.getElementById("focus-btn");
 const breakBtn = document.getElementById("break-btn");
 const resetBtn = document.getElementById("reset-btn");
 const focusSessionMarkers = document.querySelectorAll(".focus-session-marker");
+const addFocusSessionBtn = document.getElementById("add-focus-session-btn");
+const removeFocusSessionBtn = document.getElementById("remove-focus-session-btn");
 const breakSessionMarkers = document.querySelectorAll(".break-session-marker");
+const addBreakSessionBtn = document.getElementById("add-break-session-btn");
+const removeBreakSessionBtn = document.getElementById("remove-break-session-btn");
 
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
@@ -16,7 +20,7 @@ const totalFocusSessions = 4;
 
 // Class for the focus and break timers
 class TimerState {
-    constructor(name, fullSessionMinutes, button, minutesElement, secondsElement, sessionMarkerClass) {
+    constructor(name, fullSessionMinutes, button, minutesElement, secondsElement, sessionMarkerClass, addSessionButton, removeSessionButton) {
         this.name = name;
         this.sessionsCompleted = 0;
         this.isTimerRunning = false;
@@ -27,6 +31,8 @@ class TimerState {
         this.minutesElement = minutesElement;
         this.secondsElement = secondsElement;
         this.sessionMarkers = document.querySelectorAll(`.${sessionMarkerClass}`);
+        this.addSessionButton = addSessionButton;
+        this.removeSessionButton = removeSessionButton;
     }
 }
 
@@ -37,7 +43,9 @@ const focusTimerState = new TimerState(
     focusBtn,
     focusMinutesEl,
     focusSecondsEl,
-    "focus-session-marker"
+    "focus-session-marker",
+    addFocusSessionBtn,
+    removeBreakSessionBtn
 );
 
 // Create timer state object for the break timer
@@ -47,7 +55,9 @@ const breakTimerState = new TimerState(
     breakBtn,
     breakMinutesEl,
     breakSecondsEl,
-    "break-session-marker"
+    "break-session-marker",
+    addBreakSessionBtn,
+    removeBreakSessionBtn
 );
 
 const saveTimerState = (state) => {
