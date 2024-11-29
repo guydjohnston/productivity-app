@@ -62,14 +62,12 @@ const saveTimerState = (state) => {
     };
     
     localStorage.setItem(timerName, JSON.stringify(timerStateSaved));
-    console.log(`${timerName} state saved is`, timerStateSaved);
 };
 
 const loadTimerState = (state) => {
     const timerName = state.name.toLowerCase() + "Timer";
 
     const timerStateLoaded = JSON.parse(localStorage.getItem(timerName));
-    console.log(`${timerName} state loaded is`, timerStateLoaded);
 
     // If there was data saved in local storage, update timer state object using values from local storage then update time displayed and display of sessions completed
     if (timerStateLoaded) {
@@ -102,9 +100,9 @@ const fullyResetTimer = (state) => {
     pauseTimer(state);
     state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
     state.sessionsCompleted = 0;
+    saveTimerState(state);
     updateCountdownDisplay(state, state.msLeftInSession);
     updateSessionsDisplay(state);
-    saveTimerState(state);
 };
 
 const resetTimerEndTime = (state) => {
@@ -122,7 +120,7 @@ const endTimerSession = (state) => {
     saveTimerState(state);
     updateSessionsDisplay(state);
 
-    if (state.name === "Break") {
+    if (state === breakTimerState) {
         // If there's still another break session due, start the next break session
         if (breakTimerState.sessionsCompleted < focusTimerState.sessionsCompleted) {
 
@@ -139,7 +137,7 @@ const endTimerSession = (state) => {
         }
     }
 
-    if (state.name === "Focus") {
+    if (state === focusTimerState) {
         // When all the focus sessions are complete for the day, alert the user and stop and reset both timers
         if (focusTimerState.sessionsCompleted === totalFocusSessions) {
             setTimeout(() => {
@@ -181,9 +179,9 @@ const updateTimer = (state) => {
 
 const startTimer = (state) => {
     // Pause the break timer when starting the focus timer, and vice-versa
-    if (state.name === "Focus") {
+    if (state === focusTimerState) {
         if (breakTimerState.isTimerRunning === true) pauseTimer(breakTimerState);
-    } else if (state.name === "Break") {
+    } else if (state === breakTimerState) {
         if (focusTimerState.isTimerRunning === true) pauseTimer(focusTimerState);
     }
 
@@ -215,7 +213,7 @@ const pauseTimer = (state) => {
 
 const startOrPauseTimer = (state) => {
     // If all the break sessions are completed, don't start the break timer
-    if (state.name === "Break") {
+    if (state === breakTimerState) {
         if (breakTimerState.sessionsCompleted >= totalFocusSessions - 1) {
             alert("No more break sessions left!");
             return;
@@ -239,10 +237,18 @@ const resetBothTimers = () => {
 const resumeRunningTimer = (state) => {
     state.button.textContent = `Pause ${state.name} Timer`;
 
+    // Update the display of the timer that's not running
+    if (state === focusTimerState) {
+        updateCountdownDisplay(breakTimerState, breakTimerState.msLeftInSession);
+    } else if (state === breakTimerState) {
+        updateCountdownDisplay(focusTimerState, focusTimerState.msLeftInSession);
+    }
+
     // Update both sessions displays
     updateSessionsDisplay(focusTimerState);
     updateSessionsDisplay(breakTimerState);
 
+    // Continue updating the timer that's running recursively (which will also update its timer display)
     updateTimer(state);
 };
 
