@@ -11,7 +11,7 @@ const breakSessionMarkers = document.querySelectorAll(".break-session-marker");
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusSessionMinutes = 0.1;
+const focusSessionMinutes = 100;
 const totalFocusSessions = 4;
 
 // Class for the focus and break timers
@@ -50,27 +50,6 @@ const breakTimerState = new TimerState(
     "break-session-marker"
 );
 
-// Update the minutes and seconds shown on the timer display
-const updateCountdownDisplay = (state, msToDisplay) => {
-    const minutesDisplayed = Math.floor(msToDisplay / msPerMinute).toString().padStart(2, "0");
-    const secondsDisplayed = Math.round((msToDisplay / msPerSecond) % 60).toString().padStart(2, "0");
-
-    // Update the focus timer display on the page
-    state.minutesElement.textContent = minutesDisplayed;
-    state.secondsElement.textContent = secondsDisplayed;
-};
-
-// Update the visual markers on the page to show the number of focus or break sessions completed
-const updateSessionsDisplay = (state) => {
-    state.sessionMarkers.forEach((marker, index) => {
-        if (index < state.sessionsCompleted) {
-            marker.classList.add("completed");
-        } else {
-            marker.classList.remove("completed");
-        };
-    });
-};
-
 const saveTimerState = (state) => {
     const timerName = state.name.toLowerCase() + "Timer";
     
@@ -98,13 +77,33 @@ const loadTimerState = (state) => {
     }
 };
 
+// Update the minutes and seconds shown on the timer display
+const updateCountdownDisplay = (state, msToDisplay) => {
+    const minutesDisplayed = Math.floor(msToDisplay / msPerMinute).toString().padStart(2, "0");
+    const secondsDisplayed = Math.round((msToDisplay / msPerSecond) % 60).toString().padStart(2, "0");
+
+    // Update the focus timer display on the page
+    state.minutesElement.textContent = minutesDisplayed;
+    state.secondsElement.textContent = secondsDisplayed;
+};
+
+// Update the visual markers on the page to show the number of focus or break sessions completed
+const updateSessionsDisplay = (state) => {
+    state.sessionMarkers.forEach((marker, index) => {
+        if (index < state.sessionsCompleted) {
+            marker.classList.add("completed");
+        } else {
+            marker.classList.remove("completed");
+        };
+    });
+};
+
 const fullyResetTimer = (state) => {
     pauseTimer(state);
     state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
     state.sessionsCompleted = 0;
+    updateCountdownDisplay(state, state.msLeftInSession);
     updateSessionsDisplay(state);
-    state.minutesElement.textContent = "00";
-    state.secondsElement.textContent = "00";
     saveTimerState(state);
 };
 
