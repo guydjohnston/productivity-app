@@ -118,33 +118,30 @@ const fullyResetTimer = (state) => {
     updateSessionsDisplay(state);
 };
 
-const resetTimerEndTime = (state) => {
-    const currentTime = Date.now();
-    state.sessionEndTime = currentTime + state.fullSessionMinutes * msPerMinute;
-    saveTimerState(state);
-};
+const timerSessionCompleted = (state, currentTime) => {
+    // Work out how many timer sessions have been completed
+    const sessionsCompleted = Math.ceil((currentTime - state.sessionEndTime) / (state.fullSessionMinutes * msPerMinute));
 
-const endTimerSession = (state) => {
-    // Reset the time left for the next session
-    resetTimerEndTime(state);
-
-    // Update the number of sessions completed and display it on the screen
-    state.sessionsCompleted++;
-    saveTimerState(state);
+    // Update the number of sessions completed and the sessions display
+    state.sessionsCompleted += sessionsCompleted;
     updateSessionsDisplay(state);
 
-    if (state === breakTimerState) {
-        // If there's still another break session due, start the next break session
-        if (breakTimerState.sessionsCompleted < focusTimerState.sessionsCompleted) {
+    // Update the end time for the next session, based on how many sessions were completed
+    state.sessionEndTime = currentTime + (sessionsCompleted * state.fullSessionMinutes * msPerMinute);
 
+    saveTimerState(state);
+
+    if (state === breakTimerState) {
+        // If there's still another break session due, continue with the next break session
+        if (breakTimerState.sessionsCompleted < focusTimerState.sessionsCompleted) {
             // Continue updating the break timer recursively
             updateTimer(breakTimerState);
             return;
         }
         // Otherwise pause the break timer and start the next focus session
         else {
-            // alert("Break session finished. Back to work!");
-            pauseTimer(breakTimerState);
+            alert("Break session finished. Back to work!");
+            pauseTimer(breakTimerState); // Can this line be deleted? If not, work out what needs to change
             startTimer(focusTimerState);
             return;
         }
@@ -152,7 +149,7 @@ const endTimerSession = (state) => {
 
     if (state === focusTimerState) {
         // When all the focus sessions are complete for the day, alert the user and stop and reset both timers
-        if (focusTimerState.sessionsCompleted === focusTimerState.totalSessions) {
+        if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
             setTimeout(() => {
                 alert("Focus time completed for today!");
                 fullyResetTimer(focusTimerState);
@@ -172,9 +169,9 @@ const updateTimer = (state) => {
     if (state.isTimerRunning) {
         const currentTime = Date.now();
 
-        // If the timer has ended, determine what to do next and don't update the timer display
+        // If one or more timer session(s) has been completed since the last update, determine what to do next and don't update the timer display
         if (currentTime >= state.sessionEndTime) {
-            endTimerSession(state);
+            timerSessionCompleted(state, currentTime);
             return;
         }
 
@@ -186,7 +183,6 @@ const updateTimer = (state) => {
 
         // Run this function again in one second
         setTimeout(() => updateTimer(state), 1000);
-        return;
     }
 };
 
@@ -248,6 +244,7 @@ const resetBothTimers = () => {
 };
 
 const resumeRunningTimer = (state) => {
+    // Update button text
     state.button.textContent = `Pause ${state.name} Timer`;
 
     // Update the display of the timer that's not running
@@ -263,6 +260,23 @@ const resumeRunningTimer = (state) => {
 
     // Continue updating the timer that's running recursively (which will also update its timer display)
     updateTimer(state);
+};
+
+
+const removeCompletedSession = (state) => {
+    // If there's at least one session completed, remove one and update the sessions display
+    if (state.sessionsCompleted > 0) {
+        state.sessionsCompleted--;
+        updateSessionsDisplay(state);
+    }
+};
+
+const addCompletedSession = (state) => {
+    // If it won't lead to the final session being completed, add another completed session and update the sessions display
+    if (state.sessionsCompleted < state.totalSessions - 1) {
+        state.sessionsCompleted++;
+        updateSessionsDisplay(state);
+    } 
 };
 
 window.onload = (event) => {
@@ -283,22 +297,6 @@ window.onload = (event) => {
         updateSessionsDisplay(focusTimerState);
         updateSessionsDisplay(breakTimerState);
     }
-};
-
-const removeCompletedSession = (state) => {
-    // If there's at least one session completed, remove one and update the sessions display
-    if (state.sessionsCompleted > 0) {
-        state.sessionsCompleted--;
-        updateSessionsDisplay(state);
-    }
-};
-
-const addCompletedSession = (state) => {
-    // If it won't lead to the final session being completed, add another completed session and update the sessions display
-    if (state.sessionsCompleted < state.totalSessions - 1) {
-        state.sessionsCompleted++;
-        updateSessionsDisplay(state);
-    } 
 };
 
 focusBtn.addEventListener("click", () => startOrPauseTimer(focusTimerState));
