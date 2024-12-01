@@ -15,7 +15,7 @@ const removeBreakSessionBtn = document.getElementById("remove-break-session-btn"
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusSessionMinutes = 0.1;
+const focusSessionMinutes = 0.2;
 const totalFocusSessions = 4;
 
 // Class for the focus and break timers
@@ -178,7 +178,7 @@ const breakSessionCompletedWithExtra = (state, currentTime) => {
         }
 
         // Reset end time for next break session
-        breakTimerState.sessionEndTime = breakTimerState.fullSessionMs;
+        breakTimerState.sessionEndTime = currentTime + breakTimerState.fullSessionMs;
 
         // Reset end time for next focus session based on break sessions and any focus sessions completed
         focusTimerState.sessionEndTime += (1 + extraBreakSessions) * breakTimerState.fullSessionMs + focusSessionsCompleted * focusTimerState.fullSessionMs;
@@ -233,7 +233,7 @@ const breakSessionCompletedNormally = (state, currentTime) => {
         }
     }
     // Reset end time for the next break session
-    breakTimerState.sessionEndTime = breakTimerState.fullSessionMs;
+    breakTimerState.sessionEndTime = currentTime + breakTimerState.fullSessionMs;
 
     // Update end time for next focus sesssion based on break session and any focus sessions completed
     focusTimerState.sessionEndTime += breakTimerState.fullSessionMs + (focusSessionCompleted * focusTimerState.fullSessionMs);
