@@ -24,7 +24,7 @@ class TimerState {
         this.name = name;
         this.sessionsCompleted = 0;
         this.isTimerRunning = false;
-        this.fullSessionMinutes = fullSessionMinutes;
+        this.fullSessionMs = fullSessionMinutes * msPerMinute;
         this.msLeftInSession = fullSessionMinutes * msPerMinute;
         this.sessionEndTime = null;
         this.button = button;
@@ -111,7 +111,7 @@ const updateSessionsDisplay = (state) => {
 
 const fullyResetTimer = (state) => {
     pauseTimer(state);
-    state.msLeftInSession = state.fullSessionMinutes * msPerMinute;
+    state.msLeftInSession = state.fullSessionMs;
     state.sessionsCompleted = 0;
     saveTimerState(state);
     updateCountdownDisplay(state, state.msLeftInSession);
@@ -120,14 +120,14 @@ const fullyResetTimer = (state) => {
 
 const timerSessionCompleted = (state, currentTime) => {
     // Work out how many timer sessions have been completed
-    const sessionsCompleted = Math.ceil((currentTime - state.sessionEndTime) / (state.fullSessionMinutes * msPerMinute));
+    const sessionsCompleted = Math.ceil((currentTime - state.sessionEndTime) / state.fullSessionMs);
 
     // Update the number of sessions completed and the sessions display
     state.sessionsCompleted += sessionsCompleted;
     updateSessionsDisplay(state);
 
     // Update the end time for the next session, based on how many sessions were completed
-    state.sessionEndTime = currentTime + (sessionsCompleted * state.fullSessionMinutes * msPerMinute);
+    state.sessionEndTime = currentTime + (sessionsCompleted * state.fullSessionMs);
 
     saveTimerState(state);
 
