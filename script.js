@@ -131,7 +131,7 @@ finalFocusSessionCompleted = () => {
 const nextSessionOfSameTimer = (state, sessionsCompleted) => {
     state.sessionsCompleted += sessionsCompleted;
     updateSessionsDisplay(state);
-    
+
     // Check if final focus session has been completed, exit this function if so
     if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
         finalFocusSessionCompleted();
@@ -179,13 +179,14 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
     startTimer(focusTimerState);
 };
 
-// Determine what to do next when end time passes with focus timer running
+// Determine what to do next when a focus session ends
 const completeFocusSession = (timePastSessionEnd) => {
+    // One focus session is always completed, work out how many others are completed (if any)
     const focusSessionsCompleted = 1 + Math.floor(timePastSessionEnd / focusTimerState.fullSessionMs);
     nextSessionOfSameTimer(focusTimerState, focusSessionsCompleted);
 };
 
-// Determine what to do next when end time passes with break timer running
+// Determine what to do next when a break session ends
 const completeBreakSession = (timePastSessionEnd) => {
     // Work out how many break sessions the user had accrued at the last update
     const breakSessionsAccrued = focusTimerState.sessionsCompleted - breakTimerState.sessionsCompleted;
@@ -197,18 +198,16 @@ const completeBreakSession = (timePastSessionEnd) => {
 
     // If any of the accrued break sessions haven't been completed
     if (breakSessionsCompleted < breakSessionsAccrued) {
-        // Continue running the break timer with the next stession
+        // Continue running the break timer with the next session
         nextSessionOfSameTimer(breakTimerState, breakSessionsCompleted);
-        return;
     }
-    // If all of the accrued break sessions have been completed (and possibility one or more focus sessions)
+    // If all of the accrued break sessions have been completed (and possibly one or more focus sessions)
     else {
         // Work out how many focus sessions have been completed
         const focusSessionsCompleted = Math.floor((timePastSessionEnd - breakSessionsCompleted * breakTimerState.fullSessionMs) / focusTimerState.fullSessionMs);
 
         // Switch from the break timer to the focus timer, taking into account how many of each session has been completed
         breakTimerToFocusTimer(breakSessionsCompleted, focusSessionsCompleted);
-        return;
     }
 };
 
@@ -217,17 +216,16 @@ const updateTimer = (state) => {
     if (state.isTimerRunning) {
         const currentTime = Date.now();
 
-        // If one or more timer session(s) has been completed since the last update, determine what to do next and don't update the timer display
+        // If one or more timer session(s) has been completed since the last update, determine what to do next and don't update the timer
         if (currentTime >= state.sessionEndTime) {
             if (state === focusTimerState) {
                 completeFocusSession(currentTime - state.sessionEndTime);
-                return;
             }
             // If the break timer was running at the last timer update
             else if (state === breakTimerState) {
                 completeBreakSession(currentTime - state.sessionEndTime);
-                return;
             };
+            return;
         }
 
         // Work out how many milliseconds there are between now and the session end time
@@ -283,11 +281,9 @@ const pauseTimer = (state) => {
 
 const startOrPauseTimer = (state) => {
     // If all the break sessions are completed, don't start the break timer
-    if (state === breakTimerState) {
-        if (breakTimerState.sessionsCompleted >= breakTimerState.totalSessions) {
-            alert("No more break sessions left!");
-            return;
-        }
+    if (state === breakTimerState && breakTimerState.sessionsCompleted >= breakTimerState.totalSessions) {
+        alert("No more break sessions left!");
+        return;
     }
 
     // Start/resume or pause the timer, depending on whether it's already running
