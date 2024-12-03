@@ -15,7 +15,7 @@ const removeBreakSessionBtn = document.getElementById("remove-break-session-btn"
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusSessionMinutes = 0.2;
+const focusSessionMinutes = 0.1;
 const totalFocusSessions = 4;
 
 // Class for the focus and break timers
@@ -109,6 +109,7 @@ const updateSessionsDisplay = (state) => {
     });
 };
 
+// Fully reset the focus or break timer back to its initial state
 const fullyResetTimer = (state) => {
     pauseTimer(state);
     state.msLeftInSession = state.fullSessionMs;
@@ -118,143 +119,95 @@ const fullyResetTimer = (state) => {
     updateSessionsDisplay(state);
 };
 
+// Finish the working day and reset both timers when the final focus session is completed
 finalFocusSessionCompleted = () => {
     alert("Focus time completed for today!");
     fullyResetTimer(focusTimerState);
     fullyResetTimer(breakTimerState);
 };
 
-const focusSessionCompleted = (state, currentTime) => {
-    // Work out how many focus sessions have been completed
-    const focusSessionsCompleted = 1 + Math.floor((currentTime - state.sessionEndTime) / focusTimerState.fullSessionMs);
+// Start the next session of the focus or break timer
+const nextSessionOfSameTimer = (state, sessionsCompleted) => {
+    state.sessionsCompleted += sessionsCompleted;
+    updateSessionsDisplay(state);
 
-    // Update the number of focus sessions completed and the focus sessions display
-    focusTimerState.sessionsCompleted += focusSessionsCompleted;
-    updateSessionsDisplay(focusTimerState);
-    
-    // Check if final focus session has been completed
+    // Check if final focus session has been completed, exit this function if so
     if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
         finalFocusSessionCompleted();
         return;
     }
 
-    // Update end time for next focus session
-    focusTimerState.sessionEndTime += focusSessionsCompleted * focusTimerState.fullSessionMs;
+    // Reset end time for the next session and save all updated data to local storage
+    state.sessionEndTime += sessionsCompleted * state.fullSessionMs;
+    saveTimerState(state);
 
-    // Save the updated data to local storage
-    saveTimerState(focusTimerState);
-
-    // Start the next focus session
-    updateTimer(focusTimerState);
+    // Continue updating the timer recursively
+    updateTimer(state);
 };
 
-const breakSessionCompletedWithExtra = (state, currentTime) => {
-    // Work out how many extra break sessions had been accrued at the last update
-    const extraBreakSessions = focusTimerState.sessionsCompleted - breakTimerState.sessionsCompleted - 1;
+// Stop the break timer running and start the next focus sessions
+const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) => {
 
-    // If all the extra break sessions have been completed
-    if (currentTime - state.sessionEndTime >= extraBreakSessions * breakTimerState.fullSessionMs) {
-        // Update the break sessions completed and the sessions diplay
-        breakTimerState.sessionsCompleted += 1 + extraBreakSessions;
-        updateSessionsDisplay(breakTimerState);
-
-        let focusSessionsCompleted = 0;
-
-        // If one or more focus sessions have also been completed
-        if (currentTime - state.sessionEndTime >= (extraBreakSessions * breakTimerState.fullSessionMs) + focusTimerState.fullSessionMs) {
-            // Work out how many focus sessions have been completed
-            focusSessionsCompleted = Math.floor((currentTime - state.sessionEndTime - extraBreakSessions * breakTimerState.fullSessionMs) / focusTimerState.fullSessionMs);
-
-            // Update focus sessions completed and sessions display
-            focusTimerState.sessionsCompleted += focusSessionsCompleted;
-            updateSessionsDisplay(focusTimerState);
-            
-            // // Check if final focus session has been completed
-            if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
-                finalFocusSessionCompleted();
-                return;
-            }
-        }
-
-        // Reset end time for next break session and update the display
-        breakTimerState.sessionEndTime = currentTime + breakTimerState.fullSessionMs;
-        updateCountdownDisplay(breakTimerState, breakTimerState.fullSessionMs);
-
-        // Reset end time for next focus session based on break sessions and any focus sessions completed
-        focusTimerState.sessionEndTime += (1 + extraBreakSessions) * breakTimerState.fullSessionMs + focusSessionsCompleted * focusTimerState.fullSessionMs;
-
-        // Update data in local storage for both timers
-        saveTimerState(focusTimerState);
-        saveTimerState(breakTimerState);
-
-        // Start the next focus session
-        startTimer(focusTimerState);
-    }
-    // If the extra break sessions haven't all been completed
-    else {
-        // Work out how many of the extra break sessions have been completed
-        const extraBreakSessionsCompleted = Math.floor((currentTime - state.sessionEndTime) / breakTimerState.fullSessionMs);
-
-        // Update break sessions completed and sessions diplay
-        breakTimerState.sessionsCompleted += extraBreakSessions;
-        updateSessionsDisplay(breakTimerState);
-
-        // Update the end time of the next break session based on the total number of break sessions completed
-        breakTimerState.sessionEndTime += (1 + extraBreakSessionsCompleted) * breakTimerState.fullSessionMs;
-
-        // Save the updated data to local storage
-        saveTimerState(breakTimerState);
-
-        // Continue the next break session
-        updateTimer(breakTimerState);
-    }
-};
-
-const breakSessionCompletedNormally = (state, currentTime) => {
-    // Add one to break sessions completed and update the sessions display
-    breakTimerState.sessionsCompleted++;
+    // Update number of sessions completed and the displays for both timers
+    breakTimerState.sessionsCompleted += breakSessionsCompleted;
+    focusTimerState.sessionsCompleted += completeFocusSession;
     updateSessionsDisplay(breakTimerState);
+    updateSessionsDisplay(focusTimerState);
 
-    let focusSessionsCompleted = 0;
-
-    // If one or more focus sessions have been completed, as well as the break session
-    if (currentTime - state.sessionEndTime >= focusTimerState.fullSessionMs) {
-        // Work out how many focus sessions have been completed
-        focusSessionsCompleted = Math.floor((currentTime - state.sessionEndTime) / focusTimerState.fullSessionMs);
-
-        // Update the number of focus sessions completed and the focus sessions display
-        focusTimerState.sessionsCompleted += focusSessionsCompleted;
-        updateSessionsDisplay(focusTimerState);
-
-        // Check if final focus session has been completed
-        if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
-            finalFocusSessionCompleted();
-            return;
-        }
+    // Check if final focus session has been completed, exit this function if so
+    if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
+        finalFocusSessionCompleted();
+        return;
     }
-    // Reset end time for the next break session and update the display
-    breakTimerState.sessionEndTime = currentTime + breakTimerState.fullSessionMs;
-    updateCountdownDisplay(breakTimerState, breakTimerState.fullSessionMs);
 
-    // Update end time for next focus session based on break session and any focus sessions completed
-    focusTimerState.sessionEndTime += breakTimerState.fullSessionMs + (focusSessionCompleted * focusTimerState.fullSessionMs);
+    // Set end time for  next focus session based on previous end time of break timer and length of break and focus sessions completed since last update
+    focusTimerState.sessionEndTime = breakTimerState.sessionEndTime + breakSessionsCompleted * breakTimerState.fullSessionMs + focusSessionsCompleted * focusTimerState.fullSessionMs;
 
-    // Update data in local storage for both timers
-    saveTimerState(focusTimerState);
+    // Reset length of next break session and unset the end time
+    breakTimerState.msLeftInSession = breakTimerState.fullSessionMs;
+    breakTimerState.sessionEndTime = null;
+
+    // Update countdown display for break timer
+    updateCountdownDisplay(breakTimerState, breakTimerState.msLeftInSession);
+
+    // Save all updated data to local storage for both timers
     saveTimerState(breakTimerState);
+    saveTimerState(focusTimerState);
 
-    // Start the next focus session
+    // Start next focus session by starting the focus timer (which also pauses the break timer)
     startTimer(focusTimerState);
 };
 
-const breakSessionCompleted = (state, currentTime) => {
-    // If one or more extra break sessions had been accrued at the last update
-    if (focusTimerState.sessionsCompleted >= breakTimerState.sessionsCompleted + 1) {
-        breakSessionCompletedWithExtra(state, currentTime);
+// Determine what to do next when end time passes with focus timer running
+const completeFocusSession = (timePastSessionEnd) => {
+    const focusSessionsCompleted = Math.floor(timePastSessionEnd / focusTimerState.fullSessionMs);
+    nextSessionOfSameTimer(focusTimerState, focusSessionsCompleted);
+};
+
+// Determine what to do next when end time passes with break timer running
+const completeBreakSession = (timePastSessionEnd) => {
+    // Work out how many break sessions the user had accrued at the last update
+    const breakSessionsAccrued = focusTimerState.sessionsCompleted - breakTimerState.sessionsCompleted;
+
+    // Work out how many of the accrued break sessions have been completed
+    const breakSessionsCompleted = timePastSessionEnd >= breakSessionsAccrued * breakTimerState.fullSessionMs
+        ? breakSessionsAccrued
+        : 1 + Math.floor(timePastSessionEnd / breakTimerState.fullSessionMs);
+
+    // If any of the accrued break sessions haven't been completed
+    if (breakSessionsCompleted < breakSessionsAccrued) {
+        // Continue running the break timer with the next stession
+        nextSessionOfSameTimer(breakTimerState, breakSessionsCompleted);
+        return;
     }
-    // If there were no extra break sessions accrued at the last timer update
+    // If all of the accrued break sessions have been completed (and possibility one or more focus sessions)
     else {
-        breakSessionCompletedNormally(state, currentTime);
+        // Work out how many focus sessions have been completed
+        const focusSessionsCompleted = Math.floor((timePastSessionEnd - breakSessionsCompleted * breakTimerState.fullSessionMs) / focusTimerState.fullSessionMs);
+
+        // Switch from the break timer to the focus timer, taking into account how many of each session has been completed
+        breakTimerToFocusTimer(breakSessionsCompleted, focusSessionsCompleted);
+        return;
     }
 };
 
@@ -265,15 +218,15 @@ const updateTimer = (state) => {
 
         // If one or more timer session(s) has been completed since the last update, determine what to do next and don't update the timer display
         if (currentTime >= state.sessionEndTime) {
-            // If the focus timer was running at the last timer update
             if (state === focusTimerState) {
-                focusSessionCompleted(state, currentTime);
+                completeFocusSession(currentTime - state.sessionEndTime);
+                return;
             }
             // If the break timer was running at the last timer update
             else if (state === breakTimerState) {
-                breakSessionCompleted(state, currentTime);
+                completeBreakSession(currentTime - state.sessionEndTime);
+                return;
             };
-            return;
         }
 
         // Work out how many milliseconds there are between now and the session end time
@@ -295,8 +248,11 @@ const startTimer = (state) => {
         if (focusTimerState.isTimerRunning === true) pauseTimer(focusTimerState);
     }
 
-    // Set the end time in milliseconds for the current focus session
-    state.sessionEndTime = Date.now() + state.msLeftInSession;
+    // If the session end time isn't currently set
+    if (!state.sessionEndTime) {
+        // Set the end time in milliseconds for the current focus session
+        state.sessionEndTime = Date.now() + state.msLeftInSession;
+    }
 
     // Unset the time left in the current session until the timer is paused again
     state.msLeftInSession = null;
@@ -310,8 +266,11 @@ const startTimer = (state) => {
 };
 
 const pauseTimer = (state) => {
-    // Save the number of milliseconds left in the current focus sessions, for when the focus timer is restarted
-    state.msLeftInSession = state.sessionEndTime - Date.now();
+    // If the time left hasn't already been set for the next session
+    if (!state.msLeftInSession) {
+        // Save the number of milliseconds left in the current focus sessions, for when the focus timer is restarted
+        state.msLeftInSession = state.sessionEndTime - Date.now();
+    }
 
     // Unset the end time for the current focus session until the focus timer is started again
     state.sessionEndTime = null;
