@@ -118,12 +118,10 @@ const fullyResetTimer = (state) => {
     updateSessionsDisplay(state);
 };
 
-checkForFinalFocusSession = () => {
-    if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
-        alert("Focus time completed for today!");
-        fullyResetTimer(focusTimerState);
-        fullyResetTimer(breakTimerState);
-    }
+finalFocusSessionCompleted = () => {
+    alert("Focus time completed for today!");
+    fullyResetTimer(focusTimerState);
+    fullyResetTimer(breakTimerState);
 };
 
 const focusSessionCompleted = (state, currentTime) => {
@@ -133,7 +131,12 @@ const focusSessionCompleted = (state, currentTime) => {
     // Update the number of focus sessions completed and the focus sessions display
     focusTimerState.sessionsCompleted += focusSessionsCompleted;
     updateSessionsDisplay(focusTimerState);
-    checkForFinalFocusSession();
+    
+    // Check if final focus session has been completed
+    if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
+        finalFocusSessionCompleted();
+        return;
+    }
 
     // Update end time for next focus session
     focusTimerState.sessionEndTime += focusSessionsCompleted * focusTimerState.fullSessionMs;
@@ -161,11 +164,16 @@ const breakSessionCompletedWithExtra = (state, currentTime) => {
         if (currentTime - state.sessionEndTime >= (extraBreakSessions * breakTimerState.fullSessionMs) + focusTimerState.fullSessionMs) {
             // Work out how many focus sessions have been completed
             focusSessionsCompleted = Math.floor((currentTime - state.sessionEndTime - extraBreakSessions * breakTimerState.fullSessionMs) / focusTimerState.fullSessionMs);
-            
+
             // Update focus sessions completed and sessions display
             focusTimerState.sessionsCompleted += focusSessionsCompleted;
             updateSessionsDisplay(focusTimerState);
-            checkForFinalFocusSession();
+            
+            // // Check if final focus session has been completed
+            if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
+                finalFocusSessionCompleted();
+                return;
+            }
         }
 
         // Reset end time for next break session and update the display
@@ -217,7 +225,12 @@ const breakSessionCompletedNormally = (state, currentTime) => {
         // Update the number of focus sessions completed and the focus sessions display
         focusTimerState.sessionsCompleted += focusSessionsCompleted;
         updateSessionsDisplay(focusTimerState);
-        checkForFinalFocusSession();
+
+        // Check if final focus session has been completed
+        if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
+            finalFocusSessionCompleted();
+            return;
+        }
     }
     // Reset end time for the next break session and update the display
     breakTimerState.sessionEndTime = currentTime + breakTimerState.fullSessionMs;
@@ -245,17 +258,6 @@ const breakSessionCompleted = (state, currentTime) => {
     }
 };
 
-const timerSessionCompleted = (state, currentTime) => {
-    // If the focus timer was running at the last timer update
-    if (state === focusTimerState) {
-        focusSessionCompleted(state, currentTime);
-    }
-    // If the break timer was running at the last timer update
-    else if (state === breakTimerState) {
-        breakSessionCompleted(state, currentTime);
-    };
-}
-
 const updateTimer = (state) => {
     // Only continue running the timer if it's toggled to be running
     if (state.isTimerRunning) {
@@ -263,7 +265,14 @@ const updateTimer = (state) => {
 
         // If one or more timer session(s) has been completed since the last update, determine what to do next and don't update the timer display
         if (currentTime >= state.sessionEndTime) {
-            timerSessionCompleted(state, currentTime);
+            // If the focus timer was running at the last timer update
+            if (state === focusTimerState) {
+                focusSessionCompleted(state, currentTime);
+            }
+            // If the break timer was running at the last timer update
+            else if (state === breakTimerState) {
+                breakSessionCompleted(state, currentTime);
+            };
             return;
         }
 
