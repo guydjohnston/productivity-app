@@ -16,6 +16,7 @@ const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
 const focusSessionMinutes = 0.1;
+const focusToBreakRatio = 5;
 const totalFocusSessions = 4;
 
 // Class for the focus and break timers
@@ -53,7 +54,7 @@ const focusTimerState = new TimerState(
 // Create timer state object for the break timer
 const breakTimerState = new TimerState(
     "Break",
-    focusSessionMinutes / 5, // Set the length of each break session to always be 1/5 the length of a focus session
+    focusSessionMinutes / focusToBreakRatio, // Set the length of each break session to always be 1/5 the length of a focus session
     breakBtn,
     breakMinutesEl,
     breakSecondsEl,
@@ -130,7 +131,7 @@ finalFocusSessionCompleted = () => {
 const nextSessionOfSameTimer = (state, sessionsCompleted) => {
     state.sessionsCompleted += sessionsCompleted;
     updateSessionsDisplay(state);
-
+    
     // Check if final focus session has been completed, exit this function if so
     if (focusTimerState.sessionsCompleted >= focusTimerState.totalSessions) {
         finalFocusSessionCompleted();
@@ -150,7 +151,7 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
 
     // Update number of sessions completed and the displays for both timers
     breakTimerState.sessionsCompleted += breakSessionsCompleted;
-    focusTimerState.sessionsCompleted += completeFocusSession;
+    focusTimerState.sessionsCompleted += focusSessionsCompleted;
     updateSessionsDisplay(breakTimerState);
     updateSessionsDisplay(focusTimerState);
 
@@ -180,7 +181,7 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
 
 // Determine what to do next when end time passes with focus timer running
 const completeFocusSession = (timePastSessionEnd) => {
-    const focusSessionsCompleted = Math.floor(timePastSessionEnd / focusTimerState.fullSessionMs);
+    const focusSessionsCompleted = 1 + Math.floor(timePastSessionEnd / focusTimerState.fullSessionMs);
     nextSessionOfSameTimer(focusTimerState, focusSessionsCompleted);
 };
 
