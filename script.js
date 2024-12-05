@@ -2,6 +2,8 @@ const focusMinutesEl = document.getElementById("focus-minutes");
 const focusSecondsEl = document.getElementById("focus-seconds");
 const breakMinutesEl = document.getElementById("break-minutes");
 const breakSecondsEl = document.getElementById("break-seconds");
+const endingHoursEl = document.getElementById("ending-hours");
+const endingMinutesEl = document.getElementById("ending-minutes");
 const focusBtn = document.getElementById("focus-btn");
 const breakBtn = document.getElementById("break-btn");
 const resetBtn = document.getElementById("reset-btn");
@@ -62,6 +64,29 @@ const breakTimerState = new TimerState(
     "break-session-marker",
     totalFocusSessions - 1 // There's always one fewer break session than focus sessions
 );
+
+const updateEndingTime = (state, currentTime) => {
+    // If neither timer is running, unset the ending time and exit this function
+    if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
+        endingHoursEl.textContent = "??";
+        endingMinutesEl.textContent = "??";
+        return;
+    }
+
+    if (focusTimerState.isTimerRunning) {
+        
+    }
+
+    // Work out ending time based on length of focus and break sessions not yet completed
+    const endingTime = currentTime + focusTimeLeft + (focusTimerState.totalSessions - focusTimerState.sessionsCompleted) * focusTimerState.fullSessionMs + breakTimeLeft + (breakTimerState.totalFocusSessions - breakTimerState.sessionsCompleted) * breakTimerState.fullSessionMs;
+
+    const date = new Date(endingTime);
+    const hours = date.getHours;
+    const minutes = date.getMinutes;
+
+    endingHoursEl.textContent = hours;
+    endingMinutesEl.textContent = minutes;
+};
 
 // Save all relevant timer data to local storage
 const saveTimerState = (state) => {
