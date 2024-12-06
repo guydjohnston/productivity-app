@@ -22,7 +22,7 @@ const addBreakMinBtn = document.getElementById("add-break-min-btn");
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusSessionMinutes = 0.2;
+const focusSessionMinutes = 100;
 const focusToBreakRatio = 5;
 const focusSessionsPerDay = 4;
 
