@@ -26,7 +26,7 @@ const focusSessionMinutes = 0.2;
 const focusToBreakRatio = 5;
 const focusSessionsPerDay = 4;
 
-// CtotalFocusSessionslass for the focus and break timers
+// Class for the focus and break timers
 class TimerState {
     constructor(name, fullSessionMinutes, button, minutesElement, secondsElement, sessionMarkerClass, totalSessions) {
         this.name = name;
@@ -69,7 +69,6 @@ const breakTimerState = new TimerState(
 const updateEndingTime = (state) => {
     // If neither timer is running, set the ending time as unknown and exit this function
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
-        console.log(`neither time is running. unsetting ending time`)
         endingHoursEl.textContent = "??";
         endingMinutesEl.textContent = "??";
         return;
@@ -124,7 +123,7 @@ const loadTimerState = (state) => {
 // Update the minutes and seconds shown on the timer display
 const updateCountdownDisplay = (state, msToDisplay) => {
     const minutesDisplayed = Math.floor(msToDisplay / msPerMinute).toString().padStart(2, "0");
-    const secondsDisplayed = Math.round((msToDisplay / msPerSecond) % 60).toString().padStart(2, "0");
+    const secondsDisplayed = Math.floor((msToDisplay / msPerSecond) % 60).toString().padStart(2, "0");
 
     // Update the focus timer display on the page
     state.minutesElement.textContent = minutesDisplayed;
@@ -162,7 +161,6 @@ finalFocusSessionCompleted = () => {
 
 // Start the next session of the focus or break timer
 const nextSessionOfSameTimer = (state, sessionsCompleted) => {
-
     // Update number of sessions completed and sessions display
     state.sessionsCompleted += sessionsCompleted;
     updateSessionsDisplay(state);
@@ -184,7 +182,6 @@ const nextSessionOfSameTimer = (state, sessionsCompleted) => {
 
 // Stop the break timer running and start the next focus sessions
 const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) => {
-
     // Update number of sessions completed and sessions display for both timers
     breakTimerState.sessionsCompleted += breakSessionsCompleted;
     focusTimerState.sessionsCompleted += focusSessionsCompleted;
@@ -196,9 +193,6 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
         finalFocusSessionCompleted();
         return;
     }
-
-    // Set end time for  next focus session based on previous end time of break timer and length of break and focus sessions completed
-    focusTimerState.sessionEndTime = breakTimerState.sessionEndTime + breakSessionsCompleted * breakTimerState.fullSessionMs + focusSessionsCompleted * focusTimerState.fullSessionMs;
 
     // Reset time left in break timer and unset the end time, ready for the next break session
     breakTimerState.msLeftInSession = breakTimerState.fullSessionMs;
@@ -212,7 +206,7 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
     saveTimerState(breakTimerState);
     saveTimerState(focusTimerState);
 
-    // Start next focus session by starting the focus timer (which also pauses the break timer)
+    // Start next focus session (which also pauses the break timer)
     startTimer(focusTimerState);
 };
 
@@ -229,11 +223,12 @@ const completeFocusSession = (timePastSessionEnd) => {
 const completeBreakSession = (timePastSessionEnd) => {
     // Work out how many break sessions the user had accrued at the last update
     const breakSessionsAccrued = focusTimerState.sessionsCompleted - breakTimerState.sessionsCompleted;
-
+    
     // Work out how many of the accrued break sessions have been completed
     const breakSessionsCompleted = timePastSessionEnd >= breakSessionsAccrued * breakTimerState.fullSessionMs
-        ? breakSessionsAccrued
+        ? Math.max(1, breakSessionsAccrued)
         : 1 + Math.floor(timePastSessionEnd / breakTimerState.fullSessionMs);
+
 
     if (breakSessionsCompleted < breakSessionsAccrued) {
         // Continue running the break timer with the next session
@@ -242,7 +237,7 @@ const completeBreakSession = (timePastSessionEnd) => {
     // If all of the accrued break sessions have been completed (and possibly one or more focus sessions)
     else {
         // Work out how many focus sessions have been completed
-        const focusSessionsCompleted = Math.floor((timePastSessionEnd - breakSessionsCompleted * breakTimerState.fullSessionMs) / focusTimerState.fullSessionMs);
+        const focusSessionsCompleted = Math.floor((timePastSessionEnd - (breakSessionsCompleted - 1) * breakTimerState.fullSessionMs) / focusTimerState.fullSessionMs);
 
         // Switch from the break timer to the focus timer, taking into account how many of each session have been completed
         breakTimerToFocusTimer(breakSessionsCompleted, focusSessionsCompleted);
@@ -278,6 +273,8 @@ const updateTimer = (state) => {
 };
 
 const startTimer = (state) => {
+    const currentTime = Date.now();
+    
     // Pause the break timer when starting the focus timer, and vice-versa
     if (state === focusTimerState) {
         if (breakTimerState.isTimerRunning === true) pauseTimer(breakTimerState);
@@ -288,7 +285,7 @@ const startTimer = (state) => {
     // If the session end time isn't already set
     if (!state.sessionEndTime) {
         // Set the end time in milliseconds for the current focus session
-        state.sessionEndTime = Date.now() + state.msLeftInSession;
+        state.sessionEndTime = currentTime + state.msLeftInSession;
     }
 
     // Unset the time left in the current session until the timer is paused again
@@ -301,6 +298,7 @@ const startTimer = (state) => {
     state.isTimerRunning = true;
 
     // Update ending time and save updated data to local storage
+
     updateEndingTime();
     saveTimerState(state);
 
