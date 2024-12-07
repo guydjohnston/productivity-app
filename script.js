@@ -80,15 +80,21 @@ const updateEndingTime = (state) => {
     const focusTimeLeft = focusTimerState.isTimerRunning
     ? focusTimerState.sessionEndTime - currentTime
     : focusTimerState.msLeftInSession;
+    console.log(`time left in current focus session is ${focusTimeLeft}`)
     const breakTimeLeft = breakTimerState.isTimerRunning
     ? breakTimerState.sessionEndTime - currentTime
     : breakTimerState.msLeftInSession
+    console.log(`time left in current break session is ${breakTimeLeft}`)
     
     // Work out ending time based on time left in current focus and break sessions and length of focus and break sessions not yet completed
-    const endingTime = currentTime + focusTimeLeft + breakTimeLeft + (focusTimerState.totalSessions - focusTimerState.sessionsCompleted) * focusTimerState.fullSessionMs + (breakTimerState.totalSessions - breakTimerState.sessionsCompleted) * breakTimerState.fullSessionMs;
+    console.log(`endingTime = ${currentTime} + ${focusTimeLeft} + ${breakTimeLeft} + (${focusTimerState.totalSessions} - ${focusTimerState.sessionsCompleted} - 1) * ${focusTimerState.fullSessionMs} + (${breakTimerState.totalSessions} - ${breakTimerState.sessionsCompleted} - 1) * ${breakTimerState.fullSessionMs}`)
+
+    const endingTime = currentTime + focusTimeLeft + breakTimeLeft + (focusTimerState.totalSessions - focusTimerState.sessionsCompleted - 1) * focusTimerState.fullSessionMs + (breakTimerState.totalSessions - breakTimerState.sessionsCompleted - 1) * breakTimerState.fullSessionMs;
+    console.log(`ending time is ${endingTime}`)
 
     // Update display of ending time
     const date = new Date(endingTime);
+    console.log(`ending time date is ${date}`)
     endingHoursEl.textContent = date.getHours().toString().padStart(2, "0");;
     endingMinutesEl.textContent = date.getMinutes().toString().padStart(2, "0");
 };
