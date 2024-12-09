@@ -185,7 +185,7 @@ const nextSessionOfSameTimer = (state, sessionsCompleted) => {
 const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) => {
     // Alert the user by vibrating the device (if the device supports it)
     if ("vibrate" in navigator) {
-        navigator.vibrate([200, 100, 200]);
+        navigator.vibrate([500, 500, 500]);
         console.log("Vibrating the device - it's time to start working again");
     } else console.log("This device doesn't support vibration");
     
@@ -221,7 +221,7 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
 const completeFocusSession = (timePastSessionEnd) => {
     // Alert the user by vibrating the device (if the device supports it)
     if ("vibrate" in navigator) {
-        navigator.vibrate([200, 100, 200]);
+        navigator.vibrate([500, 500, 500]);
         console.log("Vibrating the device - it's time to take a break");
     } else console.log("This device doesn't support vibration");
     
