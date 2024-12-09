@@ -22,7 +22,7 @@ const addBreakMinBtn = document.getElementById("add-break-min-btn");
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-const focusSessionMinutes = 100;
+const focusSessionMinutes = 0.2;
 const focusToBreakRatio = 5;
 const focusSessionsPerDay = 4;
 
@@ -80,21 +80,16 @@ const updateEndingTime = (state) => {
     const focusTimeLeft = focusTimerState.isTimerRunning
     ? focusTimerState.sessionEndTime - currentTime
     : focusTimerState.msLeftInSession;
-    console.log(`time left in current focus session is ${focusTimeLeft}`)
+    
     const breakTimeLeft = breakTimerState.isTimerRunning
     ? breakTimerState.sessionEndTime - currentTime
     : breakTimerState.msLeftInSession
-    console.log(`time left in current break session is ${breakTimeLeft}`)
     
     // Work out ending time based on time left in current focus and break sessions and length of focus and break sessions not yet completed
-    console.log(`endingTime = ${currentTime} + ${focusTimeLeft} + ${breakTimeLeft} + (${focusTimerState.totalSessions} - ${focusTimerState.sessionsCompleted} - 1) * ${focusTimerState.fullSessionMs} + (${breakTimerState.totalSessions} - ${breakTimerState.sessionsCompleted} - 1) * ${breakTimerState.fullSessionMs}`)
-
     const endingTime = currentTime + focusTimeLeft + breakTimeLeft + (focusTimerState.totalSessions - focusTimerState.sessionsCompleted - 1) * focusTimerState.fullSessionMs + (breakTimerState.totalSessions - breakTimerState.sessionsCompleted - 1) * breakTimerState.fullSessionMs;
-    console.log(`ending time is ${endingTime}`)
 
     // Update display of ending time
     const date = new Date(endingTime);
-    console.log(`ending time date is ${date}`)
     endingHoursEl.textContent = date.getHours().toString().padStart(2, "0");;
     endingMinutesEl.textContent = date.getMinutes().toString().padStart(2, "0");
 };
@@ -188,6 +183,12 @@ const nextSessionOfSameTimer = (state, sessionsCompleted) => {
 
 // Stop the break timer running and start the next focus sessions
 const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) => {
+    // Alert the user by vibrating the device (if the device supports it)
+    if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200]);
+        console.log("Vibrating the device - it's time to start working again");
+    } else console.log("This device doesn't support vibration");
+    
     // Update number of sessions completed and sessions display for both timers
     breakTimerState.sessionsCompleted += breakSessionsCompleted;
     focusTimerState.sessionsCompleted += focusSessionsCompleted;
@@ -218,6 +219,12 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
 
 // Determine what to do next when a focus session ends
 const completeFocusSession = (timePastSessionEnd) => {
+    // Alert the user by vibrating the device (if the device supports it)
+    if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200]);
+        console.log("Vibrating the device - it's time to take a break");
+    } else console.log("This device doesn't support vibration");
+    
     // One focus session is always completed, work out how many others are completed (if any)
     const focusSessionsCompleted = 1 + Math.floor(timePastSessionEnd / focusTimerState.fullSessionMs);
 
