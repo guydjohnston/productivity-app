@@ -393,11 +393,20 @@ const removeCompletedSession = (state) => {
 };
 
 const addCompletedSession = (state) => {
-    // Only if it won't lead to the final session being completed, add another completed session and update the sessions display and ending time
-    if (state.sessionsCompleted < state.totalSessions - 1) {
-        state.sessionsCompleted++;
-        updateSessionsDisplay(state);
-        updateEndingTime();
+    if (state === focusTimerState) {
+        // Only if it won't lead to the final focus session being completed, add another completed session and update the sessions display and ending time
+        if (state.sessionsCompleted < state.totalSessions - 1) {
+            state.sessionsCompleted++;
+            updateSessionsDisplay(state);
+            updateEndingTime();
+        }
+    } else if (state === breakTimerState) {
+        // Don't let the number of break sessions completed exceed the total number of sessions
+        if (state.sessionsCompleted < state.totalSessions) {
+            state.sessionsCompleted++;
+            updateSessionsDisplay(state);
+            updateEndingTime();
+        }
     }
 };
 
