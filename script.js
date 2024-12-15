@@ -1,49 +1,58 @@
-const focusMinutesEl = document.getElementById("focus-minutes");
-const focusSecondsEl = document.getElementById("focus-seconds");
-const breakMinutesEl = document.getElementById("break-minutes");
-const breakSecondsEl = document.getElementById("break-seconds");
-const endingHoursEl = document.getElementById("ending-hours");
-const endingMinutesEl = document.getElementById("ending-minutes");
-const focusBtn = document.getElementById("focus-btn");
-const breakBtn = document.getElementById("break-btn");
-const resetBtn = document.getElementById("reset-btn");
-const focusSessionMarkers = document.querySelectorAll(".focus-session-marker");
-const breakSessionMarkers = document.querySelectorAll(".break-session-marker");
-
-const removeFocusSessionBtn = document.getElementById("remove-focus-session-btn");
-const addFocusSessionBtn = document.getElementById("add-focus-session-btn");
-const removeFocusMinBtn = document.getElementById("remove-focus-min-btn");
-const addFocusMinBtn = document.getElementById("add-focus-min-btn");
-const removeBreakSessionBtn = document.getElementById("remove-break-session-btn");
-const addBreakSessionBtn = document.getElementById("add-break-session-btn");
-const removeBreakMinBtn = document.getElementById("remove-break-min-btn");
-const addBreakMinBtn = document.getElementById("add-break-min-btn");
-
-// Variables to help with converting between milliseconds, seconds and minutes
-const msPerSecond = 1000;
-const msPerMinute = 60 * msPerSecond;
-
 // Global configuration variables
 const focusSessionMinutes = 100;
 const focusToBreakRatio = 5;
 const focusSessionsPerDay = 4;
 
-// Global variable to track when all sessions will be finished in ms
-let endingTime;
+// Variables to help with converting between milliseconds, seconds and minutes
+const msPerSecond = 1000;
+const msPerMinute = 60 * msPerSecond;
+
+// Functions to identify HTML elements on the page by id and class
+const getById = (id) => document.getElementById(id);
+const getAllByClass = (className) => document.querySelectorAll(`.${className}`);
+
+// Link to HTML elements to manipulate on the page
+const pageElements = {
+    focus: {
+        minutes: getById("focus-minutes"),
+        seconds: getById("focus-seconds"),
+        addSessionBtn: getById("add-focus-session-btn"),
+        removeSessionBtn: getById("remove-focus-session-btn"),
+        addMinBtn: getById("add-focus-min-btn"),
+        removeMinBtn: getById("remove-focus-min-btn"),
+        timerBtn: getById("focus-btn"),
+        sessionMarkers: getAllByClass("focus-session-marker")
+    },
+    break: {
+        minutes: getById("break-minutes"),
+        seconds: getById("break-seconds"),
+        addSessionBtn: getById("add-break-session-btn"),
+        removeSessionBtn: getById("remove-break-session-btn"),
+        addMinBtn: getById("add-break-min-btn"),
+        removeMinBtn: getById("remove-break-min-btn"),
+        timerBtn: getById("break-btn"),
+        sessionMarkers: getAllByClass("break-session-marker")
+    },
+    ending: {
+        hours: getById("ending-hours"),
+        minutes: getById("ending-minutes")
+    },
+    resetBtn: getById("reset-btn")
+};
 
 // Class for the focus and break timers
 class TimerState {
-    constructor(name, fullSessionMinutes, button, minutesElement, secondsElement, sessionMarkerClass, totalSessions) {
+    constructor(name, fullSessionMinutes, btn, minutesElement, secondsElement, sessionMarkers, totalSessions) {
         this.name = name;
         this.sessionsCompleted = 0;
         this.isTimerRunning = false;
         this.fullSessionMs = fullSessionMinutes * msPerMinute;
         this.msLeftInSession = fullSessionMinutes * msPerMinute;
         this.sessionEndTime = null;
-        this.button = button;
+        this.btn = btn;
         this.minutesElement = minutesElement;
         this.secondsElement = secondsElement;
-        this.sessionMarkers = document.querySelectorAll(`.${sessionMarkerClass}`);
+        this.sessionMarkers = sessionMarkers;
         this.totalSessions = totalSessions;
     }
 }
@@ -52,10 +61,10 @@ class TimerState {
 const focusTimerState = new TimerState(
     "Focus",
     focusSessionMinutes,
-    focusBtn,
-    focusMinutesEl,
-    focusSecondsEl,
-    "focus-session-marker",
+    pageElements.focus.timerBtn,
+    pageElements.focus.minutes,
+    pageElements.focus.seconds,
+    pageElements.focus.sessionMarkers,
     focusSessionsPerDay
 );
 
@@ -63,26 +72,29 @@ const focusTimerState = new TimerState(
 const breakTimerState = new TimerState(
     "Break",
     focusSessionMinutes / focusToBreakRatio, // Set the length of each break session to always be 1/5 the length of a focus session
-    breakBtn,
-    breakMinutesEl,
-    breakSecondsEl,
-    "break-session-marker",
+    pageElements.break.timerBtn,
+    pageElements.break.minutes,
+    pageElements.break.seconds,
+    pageElements.break.sessionMarkers,
     focusSessionsPerDay - 1 // There's always one fewer break session than focus sessions
 );
+
+// Global variable to track when all focus and break sessions will be finished in milliseconds
+let endingTime;
 
 // Update the time displayed for when the final focus session will finish
 const updateEndingTimeDisplay = () => {
     // If no ending time is set, display the ending time as unknown and exit this function
     if (!endingTime) {
-        endingHoursEl.textContent = "??";
-        endingMinutesEl.textContent = "??";
+        pageElements.ending.hours.textContent = "??";
+        pageElements.ending.minutes.textContent = "??";
         return;
     }
 
     // Update display for ending time
     const date = new Date(endingTime);
-    endingHoursEl.textContent = date.getHours().toString().padStart(2, "0");;
-    endingMinutesEl.textContent = date.getMinutes().toString().padStart(2, "0");
+    pageElements.ending.hours.textContent = date.getHours().toString().padStart(2, "0");;
+    pageElements.ending.minutes.textContent = date.getMinutes().toString().padStart(2, "0");
 };
 
 // Save all relevant timer data to local storage
@@ -282,6 +294,7 @@ const completeBreakSession = (timePastSessionEnd) => {
     }
 };
 
+// Recursively update the running timer once per second
 const updateTimer = (state) => {
     // Only continue running the timer if it's toggled to be running
     if (state.isTimerRunning) {
@@ -310,6 +323,7 @@ const updateTimer = (state) => {
     }
 };
 
+// Pause the relevant timer
 const pauseTimer = (state) => {
     // If the time left hasn't already been set for the next session
     if (!state.msLeftInSession) {
@@ -323,7 +337,7 @@ const pauseTimer = (state) => {
     state.sessionEndTime = null;
 
     // Update text on the relevant start/pause button
-    state.button.textContent = `Start ${state.name} Timer`;
+    state.btn.textContent = `Start ${state.name} Timer`;
 
     // Toggle timer to not be running
     state.isTimerRunning = false;
@@ -340,7 +354,7 @@ const pauseTimer = (state) => {
     };
 }
 
-
+// Start or resume the relevant timer
 const startTimer = (state) => {
     const currentTime = Date.now();
 
@@ -362,7 +376,7 @@ const startTimer = (state) => {
     state.msLeftInSession = null;
 
     // Update text on the relevant start/pause button
-    state.button.textContent = `Pause ${state.name} Timer`;
+    state.btn.textContent = `Pause ${state.name} Timer`;
 
     // Toggle timer to be running
     state.isTimerRunning = true;
@@ -384,6 +398,7 @@ const startTimer = (state) => {
     updateTimer(state);
 };
 
+// Start or pause the relevant timer depending on whether it's already running
 const startOrPauseTimer = (state) => {
     // If all the break sessions are completed, don't start the break timer by exiting this function
     if (state === breakTimerState && breakTimerState.sessionsCompleted >= breakTimerState.totalSessions) {
@@ -396,9 +411,10 @@ const startOrPauseTimer = (state) => {
     else pauseTimer(state);
 };
 
+// Resume a timer that was running when the page was closed
 const resumeRunningTimer = (state) => {
     // Update button text
-    state.button.textContent = `Pause ${state.name} Timer`;
+    state.btn.textContent = `Pause ${state.name} Timer`;
 
     // Update the display of the timer that's not running
     const otherState = state === focusTimerState
@@ -417,6 +433,7 @@ const resumeRunningTimer = (state) => {
     updateTimer(state);
 };
 
+// Reduce number of completed sessions of relevant timer by one
 const removeCompletedSession = (state) => {
     // Only if there's at least one session completed
     if (state.sessionsCompleted > 0) {
@@ -437,6 +454,7 @@ const removeCompletedSession = (state) => {
     }
 };
 
+// Increase completed sessions of relevant timer by one
 const addCompletedSession = (state) => {
     // If all sessions have been completed, don't add another session and exit this function
     if (state.sessionsCompleted >= state.totalSessions) return;
@@ -545,19 +563,22 @@ window.onload = (event) => {
     }
 };
 
-focusBtn.addEventListener("click", () => startOrPauseTimer(focusTimerState));
-breakBtn.addEventListener("click", () => startOrPauseTimer(breakTimerState));
-resetBtn.addEventListener("click", () => {
+// Add event listeners for buttons related to focus timer
+pageElements.focus.timerBtn.addEventListener("click", () => startOrPauseTimer(focusTimerState));
+pageElements.focus.removeSessionBtn.addEventListener("click", () => removeCompletedSession(focusTimerState));
+pageElements.focus.addSessionBtn.addEventListener("click", () => addCompletedSession(focusTimerState));
+pageElements.focus.removeMinBtn.addEventListener("click", () => removeMinute(focusTimerState));
+pageElements.focus.addMinBtn.addEventListener("click", () => addMinute(focusTimerState));
+
+// Add event listeners for buttons related to break timer
+pageElements.break.timerBtn.addEventListener("click", () => startOrPauseTimer(breakTimerState));
+pageElements.break.removeSessionBtn.addEventListener("click", () => removeCompletedSession(breakTimerState));
+pageElements.break.addSessionBtn.addEventListener("click", () => addCompletedSession(breakTimerState));
+pageElements.break.removeMinBtn.addEventListener("click", () => removeMinute(breakTimerState));
+pageElements.break.addMinBtn.addEventListener("click", () => addMinute(breakTimerState));
+
+// Add event listener for reset button
+pageElements.resetBtn.addEventListener("click", () => {
     fullyResetTimer(focusTimerState);
     fullyResetTimer(breakTimerState);
 });
-
-removeFocusSessionBtn.addEventListener("click", () => removeCompletedSession(focusTimerState));
-addFocusSessionBtn.addEventListener("click", () => addCompletedSession(focusTimerState));
-removeFocusMinBtn.addEventListener("click", () => removeMinute(focusTimerState));
-addFocusMinBtn.addEventListener("click", () => addMinute(focusTimerState));
-
-removeBreakSessionBtn.addEventListener("click", () => removeCompletedSession(breakTimerState));
-addBreakSessionBtn.addEventListener("click", () => addCompletedSession(breakTimerState));
-removeBreakMinBtn.addEventListener("click", () => removeMinute(breakTimerState));
-addBreakMinBtn.addEventListener("click", () => addMinute(breakTimerState));
