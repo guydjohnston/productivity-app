@@ -24,7 +24,7 @@
                 <span id="focus-minutes"></span> : <span id="focus-seconds"></span>
                 <button id="add-focus-min-btn" class="add-or-remove">+</button>
             </p>
-            <button id="focus-btn">Start Focus Timer</button>
+            <button id="focus-timer-btn">Start Focus Timer</button>
         </div>
         <div class="section-container">
             <h2>Break Timer</h2>
@@ -40,14 +40,22 @@
                 <span id="break-minutes"></span> : <span id="break-seconds"></span>
                 <button id="add-break-min-btn" class="add-or-remove">+</button>
             </p>
-            <button id="break-btn">Start Break Timer</button>
+            <button id="break-timer-btn">Start Break Timer</button>
         </div>
         <div class="section-container">
             <h2>Ending Time</h2>
             <p class="timer">
-                <span id="ending-hours">??</span> : <span id="ending-minutes">??</span>
+                <span id="current-ending-hours">??</span> : <span id="current-ending-minutes">??</span>
             </p>
             <button id="reset-btn">Reset Timers</button>
+        </div>
+        <div class="section-container">
+            <details>
+                <summary>Previous Ending Time</summary>
+                <p class="timer">
+                    <span id="previous-ending-hours">??</span> : <span id="previous-ending-minutes">??</span>
+                </p>
+            </details>
         </div>
     </div>
     <script src="script.js"></script>
