@@ -79,20 +79,23 @@ const breakTimerState = new TimerState(
     focusSessionsPerDay - 1 // There's always one fewer break session than focus sessions
 );
 
-// Global variable to track when all focus and break sessions will be finished in milliseconds
-let endingTime;
+// Global object to track current and previous ending times in milliseconds when all focus and break sessions will be finished
+const endingTime = {
+    current: null,
+    previous: null
+};
 
 // Update the time displayed for when the final focus session will finish
 const updateEndingTimeDisplay = () => {
-    // If no ending time is set, display the ending time as unknown and exit this function
-    if (!endingTime) {
+    // If no current ending time is set, display the ending time as unknown and exit this function
+    if (!endingTime.current) {
         pageElements.ending.hours.textContent = "??";
         pageElements.ending.minutes.textContent = "??";
         return;
     }
 
     // Update display for ending time
-    const date = new Date(endingTime);
+    const date = new Date(endingTime.current);
     pageElements.ending.hours.textContent = date.getHours().toString().padStart(2, "0");;
     pageElements.ending.minutes.textContent = date.getMinutes().toString().padStart(2, "0");
 };
@@ -117,24 +120,31 @@ const saveTimerState = (state) => {
 const loadTimerState = (state) => {
     const timerName = state.name.toLowerCase() + "Timer";
 
-    // Create an object from the stored data
+    // Create object from data loaded from local storage
     const timerStateLoaded = JSON.parse(localStorage.getItem(timerName));
 
     // If there was data saved in local storage
     if (timerStateLoaded) {
-        // Update timer state object using values from local storage
+        // Update timer state object using values loaded from local storage
         Object.assign(state, timerStateLoaded);
     }
 };
 
-// Save ending time value to local storage
+// Save object with current and previous ending times to local storage
 const saveEndingTime = () => {
-    localStorage.setItem("endingTime", endingTime);
+    localStorage.setItem("endingTime", JSON.stringify(endingTime));
 };
 
-// Load ending time value from local storage
+// Load object with current and previous ending times from local storage
 const loadEndingTime = () => {
-    endingTime = Number(localStorage.getItem("endingTime"));
+    // Create object from current and previous ending times in local storage
+    const endingTimeLoaded = JSON.parse(localStorage.getItem("endingTime"));
+
+    // If there was an ending time object saved in local storage
+    if (endingTimeLoaded) {
+        // Update ending time object using values loaded from local storage
+        Object.assign(endingTime, endingTimeLoaded);
+    }
 };
 
 // Update the minutes and seconds shown on the timer display
@@ -176,8 +186,8 @@ const fullyResetTimer = (state) => {
     // Save updated timer data to local storage
     saveTimerState(state);
 
-    // Unset ending time, save to local storage and update display
-    endingTime = null;
+    // Unset current ending time, save to local storage and update display
+    endingTime.current = null;
     saveEndingTime();
     updateEndingTimeDisplay();
 };
@@ -347,8 +357,8 @@ const pauseTimer = (state) => {
 
     // Only if both timers are now paused
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
-        // Unset ending time, save to local storage and update the display
-        endingTime = null;
+        // Unset current ending time, save to local storage and update the display
+        endingTime.current = null;
         saveEndingTime();
         updateEndingTimeDisplay();
     };
@@ -387,8 +397,8 @@ const startTimer = (state) => {
     // Save updated timer data to local storage
     saveTimerState(state);
 
-    // Update ending time based on time left in both current sessions and all sessions not yet started
-    endingTime = currentTime + currentSessionsTimeLeft + (state.totalSessions - state.sessionsCompleted - 1) * state.fullSessionMs + (otherState.totalSessions - otherState.sessionsCompleted - 1) * otherState.fullSessionMs;
+    // Update current ending time based on time left in both current sessions and all sessions not yet started
+    endingTime.current = currentTime + currentSessionsTimeLeft + (state.totalSessions - state.sessionsCompleted - 1) * state.fullSessionMs + (otherState.totalSessions - otherState.sessionsCompleted - 1) * otherState.fullSessionMs;
 
     // Save updated ending time to local storage and update the display
     saveEndingTime();
@@ -445,8 +455,8 @@ const removeCompletedSession = (state) => {
         // Save updated data to local storage
         saveTimerState(state);
 
-        // Update ending time by adding length of a full session
-        endingTime += state.fullSessionMs;
+        // Update current ending time by adding length of a full session
+        endingTime.current += state.fullSessionMs;
 
         // Save updated ending time to local storage and update the display
         saveEndingTime();
@@ -469,8 +479,8 @@ const addCompletedSession = (state) => {
     // Save updated data to local storage
     saveTimerState(state);
 
-    // Update ending time by removing the length of a full session
-    endingTime -= state.fullSessionMs;
+    // Update current ending time by removing the length of a full session
+    endingTime.current -= state.fullSessionMs;
 
     // Save updated ending time to local storage and update the display
     saveEndingTime();
@@ -507,8 +517,8 @@ const removeMinute = (state) => {
     // Save updated data to local storage
     saveTimerState(state);
 
-    // Update ending time by removing a minute
-    endingTime -= msPerMinute;
+    // Update current ending time by removing a minute
+    endingTime.current -= msPerMinute;
 
     // Save updated ending time to local storage and update the display
     saveEndingTime();
@@ -533,8 +543,8 @@ const addMinute = (state) => {
     // Save updated data to local storage
     saveTimerState(state);
 
-    // Update ending time by adding one minute
-    endingTime += msPerMinute;
+    // Update current ending time by adding one minute
+    endingTime.current += msPerMinute;
 
     // Save updated ending time to local storage and update display
     saveEndingTime();
