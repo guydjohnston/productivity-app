@@ -142,7 +142,7 @@ const saveEndingTime = () => {
 const loadEndingTime = () => {
     // Load object with current and previous ending times from local storage
     const endingTimeLoaded = JSON.parse(localStorage.getItem("endingTime"));
-
+    
     // Update ending times using values loaded from local storage
     Object.assign(endingTime, endingTimeLoaded);
 };
@@ -612,12 +612,13 @@ window.onload = (event) => {
     } else if (breakTimerState.isTimerRunning) {
         resumeRunningTimer(breakTimerState);
     }
-    // If neither timer was running, update both displays using time left in current session and update sessions displays
+    // If neither timer was running, update both countdown displays, both sessions displays and previous ending time display
     else {
         updateCountdownDisplay(focusTimerState, focusTimerState.msLeftInSession);
         updateCountdownDisplay(breakTimerState, breakTimerState.msLeftInSession);
         updateSessionsDisplay(focusTimerState);
         updateSessionsDisplay(breakTimerState);
+        updateEndingTimeDisplay("previous");
     }
 };
 
