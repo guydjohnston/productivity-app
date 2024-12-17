@@ -93,7 +93,7 @@ const endingTime = {
 
 // Update the time displayed for the current or previous ending time
 const updateEndingTimeDisplay = (type) => {
-    // If no ending time is set, display the ending time as unknown and exit this function
+    // If no current/previous ending time is set, display the ending time as unknown and exit this function
     if (!endingTime[type]) {
         pageElements.ending[type].hours.textContent = "??";
         pageElements.ending[type].minutes.textContent = "??";
@@ -194,7 +194,7 @@ const resetEverything = () => {
 
     // Save current ending time as previous ending time
     endingTime.previous = endingTime.current;
-    
+
     // Unset current ending time, save to local storage and update displays
     endingTime.current = null;
     saveEndingTime();
@@ -344,6 +344,14 @@ const updateTimer = (state) => {
 
 // Pause the relevant timer
 const pauseTimer = (state) => {
+    // Define which is the timer not being paused
+    const otherState = state === focusTimerState
+        ? breakTimerState
+        : focusTimerState;
+
+    // Toggle timer to not be running
+    state.isTimerRunning = false;
+
     // If the time left hasn't already been set for the next session
     if (!state.msLeftInSession) {
         const currentTime = Date.now();
@@ -358,13 +366,10 @@ const pauseTimer = (state) => {
     // Update text on the relevant start/pause button
     state.btn.textContent = `Start ${state.name} Timer`;
 
-    // Toggle timer to not be running
-    state.isTimerRunning = false;
-
     // Save updated timer data to local storage
     saveTimerState(state);
 
-    // Only if both timers are now paused
+    // Only if both timers are now paused (not switching from one timer to the other)
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
         // Save current ending time to previous ending time then unset current ending time
         endingTime.previous = endingTime.current;
@@ -374,20 +379,13 @@ const pauseTimer = (state) => {
         saveEndingTime();
         updateEndingTimeDisplay("current");
         updateEndingTimeDisplay("previous");
-    };
+    }
 }
 
 // Start or resume the relevant timer
 const startTimer = (state) => {
+    // Find the current time
     const currentTime = Date.now();
-
-    // Define which is the timer not being started
-    const otherState = state === focusTimerState
-        ? breakTimerState
-        : focusTimerState;
-
-    // Pause the timer that's not being started
-    pauseTimer(otherState);
 
     // If the session end time isn't already set
     if (!state.sessionEndTime) {
@@ -401,25 +399,36 @@ const startTimer = (state) => {
     // Update text on the relevant start/pause button
     state.btn.textContent = `Pause ${state.name} Timer`;
 
+    // Define which is the timer not being started
+    const otherState = state === focusTimerState
+        ? breakTimerState
+        : focusTimerState;
+
+    // Only if both timers were paused
+    if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
+        // Save current ending time as previous ending time
+        endingTime.previous = endingTime.current;
+
+        // Work out how much time is left in the current session of both timers
+        const currentSessionsTimeLeft = (state.sessionEndTime - currentTime) + otherState.msLeftInSession;
+
+        // Update current ending time based on time left in both current sessions and all sessions not yet started
+        endingTime.current = currentTime + currentSessionsTimeLeft + (state.totalSessions - state.sessionsCompleted - 1) * state.fullSessionMs + (otherState.totalSessions - otherState.sessionsCompleted - 1) * otherState.fullSessionMs;
+
+        // Save updated ending times to local storage and update the displays
+        saveEndingTime();
+        updateEndingTimeDisplay("current");
+        updateEndingTimeDisplay("previous");
+    }
+
     // Toggle timer to be running
     state.isTimerRunning = true;
 
-    // Work out how much time is left in the current session of both timers
-    const currentSessionsTimeLeft = (state.sessionEndTime - currentTime) + otherState.msLeftInSession;
+    // Pause the other timer if it's already running
+    if (otherState.isTimerRunning) pauseTimer(otherState);
 
     // Save updated timer data to local storage
     saveTimerState(state);
-
-    // Save current ending time as previous ending time
-    endingTime.previous = endingTime.current;
-
-    // Update current ending time based on time left in both current sessions and all sessions not yet started
-    endingTime.current = currentTime + currentSessionsTimeLeft + (state.totalSessions - state.sessionsCompleted - 1) * state.fullSessionMs + (otherState.totalSessions - otherState.sessionsCompleted - 1) * otherState.fullSessionMs;
-
-    // Save updated ending times to local storage and update the displays
-    saveEndingTime();
-    updateEndingTimeDisplay("current");
-    updateEndingTimeDisplay("previous");
 
     // Start updating the timer recursively
     updateTimer(state);
@@ -463,22 +472,24 @@ const resumeRunningTimer = (state) => {
 
 // Reduce number of completed sessions of relevant timer by one
 const removeCompletedSession = (state) => {
-    // Only if there's at least one session completed
-    if (state.sessionsCompleted > 0) {
+    // If there are no sessions completed, do nothing and exit this function
+    if (state.sessionsCompleted <= 0) return;
 
-        // Update sessions completed and sessions display
-        state.sessionsCompleted--;
-        updateSessionsDisplay(state);
+    // Update sessions completed and sessions display
+    state.sessionsCompleted--;
+    updateSessionsDisplay(state);
 
-        // Save updated data to local storage
-        saveTimerState(state);
+    // Save updated data to local storage
+    saveTimerState(state);
 
+    // Only if one of the timers is running
+    if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
         // Save current ending time as previous ending time
         endingTime.previous = endingTime.current;
-
+    
         // Update current ending time by adding length of a full session
         endingTime.current += state.fullSessionMs;
-
+    
         // Save updated ending times to local storage and update the displays
         saveEndingTime();
         updateEndingTimeDisplay("current");
@@ -501,58 +512,58 @@ const addCompletedSession = (state) => {
     // Save updated data to local storage
     saveTimerState(state);
 
-    // Save current ending time as previous ending time
-    endingTime.previous = endingTime.current;
+    // Only if one of the timers is running
+    if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
+        // Save current ending time as previous ending time
+        endingTime.previous = endingTime.current;
 
-    // Update current ending time by removing the length of a full session
-    endingTime.current -= state.fullSessionMs;
+        // Update current ending time by removing the length of a full session
+        endingTime.current -= state.fullSessionMs;
 
-    // Save updated ending times to local storage and update the displays
-    saveEndingTime();
-    updateEndingTimeDisplay("current");
-    updateEndingTimeDisplay("previous");
+        // Save updated ending times to local storage and update the displays
+        saveEndingTime();
+        updateEndingTimeDisplay("current");
+        updateEndingTimeDisplay("previous");
+    }
 };
 
 // Remove a minute from the current session of the timer
 const removeMinute = (state) => {
-
     if (state.isTimerRunning) {
         const currentTime = Date.now();
-        // Only if the timer has more than a minute to go
-        if (state.sessionEndTime - currentTime > msPerMinute) {
-            // Remove a minute from the timer
-            state.sessionEndTime -= msPerMinute;
 
-            // Shouldn't need to update the diplay - this should happen anyway each second
-            // updateCountdownDisplay(state, state.sessionEndTime - currentTime);
-        }
-        //
-    }
-    // If the timer is paused
-    else {
-        // Only if the timer has more than a minute to go 
-        if (state.msLeftInSession > msPerMinute) {
-            // Remove a minute from the timer
-            state.msLeftInSession -= msPerMinute;
+        // If timer has a minute or less to go, do nothing and exit this function
+        if (state.sessionEndTime - currentTime <= msPerMinute) return;
 
-            // Update the countdown display and save updated data to local storage
-            updateCountdownDisplay(state, state.msLeftInSession);
-        }
+        // Remove a minute from the timer
+        state.sessionEndTime -= msPerMinute;
+    } else {
+        // If timer has a minute or less to go, do nothing and exit this function
+        if (state.msLeftInSession <= msPerMinute) return;
+
+        // Remove a minute from the timer
+        state.msLeftInSession -= msPerMinute;
+
+        // Update the countdown display and save updated data to local storage
+        updateCountdownDisplay(state, state.msLeftInSession);
     }
 
     // Save updated data to local storage
     saveTimerState(state);
 
-    // Save current ending time as previous ending time
-    endingTime.previous = endingTime.current;
+    // Only if one of the timers is running
+    if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
+        // Save current ending time as previous ending time
+        endingTime.previous = endingTime.current;
 
-    // Update current ending time by removing a minute
-    endingTime.current -= msPerMinute;
+        // Update current ending time by removing a minute
+        endingTime.current -= msPerMinute;
 
-    // Save updated ending times to local storage and update the displays
-    saveEndingTime();
-    updateEndingTimeDisplay("current");
-    updateEndingTimeDisplay("previous");
+        // Save updated ending times to local storage and update the displays
+        saveEndingTime();
+        updateEndingTimeDisplay("current");
+        updateEndingTimeDisplay("previous");
+    }
 };
 
 // Add an extra minute to the current session of the timer
@@ -573,16 +584,19 @@ const addMinute = (state) => {
     // Save updated data to local storage
     saveTimerState(state);
 
-    // Save current ending time as previous ending time
-    endingTime.previous = endingTime.current;
+    // Only if one of the timers is running
+    if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
+        // Save current ending time as previous ending time
+        endingTime.previous = endingTime.current;
 
-    // Update current ending time by adding one minute
-    endingTime.current += msPerMinute;
+        // Update current ending time by adding one minute
+        endingTime.current += msPerMinute;
 
-    // Save updated ending times to local storage and update displays
-    saveEndingTime();
-    updateEndingTimeDisplay("current");
-    updateEndingTimeDisplay("previous");
+        // Save updated ending times to local storage and update displays
+        saveEndingTime();
+        updateEndingTimeDisplay("current");
+        updateEndingTimeDisplay("previous");
+    }
 };
 
 // When the window loads for the first time or after being reopened
