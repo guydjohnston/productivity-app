@@ -187,16 +187,17 @@ const fullyResetTimer = (state) => {
     saveTimerState(state);
 };
 
+// Fully reset the whole application, including the states of both timers and current and previous ending times
 const resetEverything = () => {
     // Reset focus and break timers
     fullyResetTimer(focusTimerState);
     fullyResetTimer(breakTimerState);
 
-    // Save current ending time as previous ending time
-    endingTime.previous = endingTime.current;
-
-    // Unset current ending time, save to local storage and update displays
+    // Unset current and previous ending times, 
     endingTime.current = null;
+    endingTime.previous = null;
+
+    // Save ending time data to local storage and update displays
     saveEndingTime();
     updateEndingTimeDisplay("current");
     updateEndingTimeDisplay("previous");
@@ -371,8 +372,10 @@ const pauseTimer = (state) => {
 
     // Only if both timers are now paused (not switching from one timer to the other)
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
-        // Save current ending time to previous ending time then unset current ending time
-        endingTime.previous = endingTime.current;
+        // If current ending time isn't null, set value of previous ending time to current ending time 
+        if(endingTime.current) endingTime.previous = endingTime.current;
+
+        // Unset current ending time
         endingTime.current = null;
 
         // Save ending times to local storage and update the displays
@@ -406,8 +409,8 @@ const startTimer = (state) => {
 
     // Only if both timers were paused
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
-        // Save current ending time as previous ending time
-        endingTime.previous = endingTime.current;
+        // If current ending time isn't null, set value of previous ending time to current ending time 
+        if(endingTime.current) endingTime.previous = endingTime.current;
 
         // Work out how much time is left in the current session of both timers
         const currentSessionsTimeLeft = (state.sessionEndTime - currentTime) + otherState.msLeftInSession;
@@ -484,8 +487,8 @@ const removeCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Save current ending time as previous ending time
-        endingTime.previous = endingTime.current;
+        // If current ending time isn't null, set value of previous ending time to current ending time 
+        if(endingTime.current) endingTime.previous = endingTime.current;
     
         // Update current ending time by adding length of a full session
         endingTime.current += state.fullSessionMs;
@@ -514,8 +517,8 @@ const addCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Save current ending time as previous ending time
-        endingTime.previous = endingTime.current;
+        // If current ending time isn't null, set value of previous ending time to current ending time 
+        if(endingTime.current) endingTime.previous = endingTime.current;
 
         // Update current ending time by removing the length of a full session
         endingTime.current -= state.fullSessionMs;
@@ -553,8 +556,8 @@ const removeMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Save current ending time as previous ending time
-        endingTime.previous = endingTime.current;
+        // If current ending time isn't null, set value of previous ending time to current ending time 
+        if(endingTime.current) endingTime.previous = endingTime.current;
 
         // Update current ending time by removing a minute
         endingTime.current -= msPerMinute;
@@ -586,8 +589,8 @@ const addMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Save current ending time as previous ending time
-        endingTime.previous = endingTime.current;
+        // If current ending time isn't null, set value of previous ending time to current ending time 
+        if(endingTime.current) endingTime.previous = endingTime.current;
 
         // Update current ending time by adding one minute
         endingTime.current += msPerMinute;
