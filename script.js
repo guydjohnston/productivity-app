@@ -625,19 +625,25 @@ window.onload = (event) => {
     }
 };
 
-// Add event listeners for buttons related to focus timer
-pageElements.focus.timerBtn.addEventListener("click", () => startOrPauseTimer(focusTimerState));
-pageElements.focus.removeSessionBtn.addEventListener("click", () => removeCompletedSession(focusTimerState));
-pageElements.focus.addSessionBtn.addEventListener("click", () => addCompletedSession(focusTimerState));
-pageElements.focus.removeMinBtn.addEventListener("click", () => removeMinute(focusTimerState));
-pageElements.focus.addMinBtn.addEventListener("click", () => addMinute(focusTimerState));
+// Mapping of buttons to the functions they trigger
+const btnActions = {
+    timerBtn: startOrPauseTimer,
+    removeSessionBtn: removeCompletedSession,
+    addSessionBtn: addCompletedSession,
+    removeMinBtn: removeMinute,
+    addMinBtn: addMinute
+};
 
-// Add event listeners for buttons related to break timer
-pageElements.break.timerBtn.addEventListener("click", () => startOrPauseTimer(breakTimerState));
-pageElements.break.removeSessionBtn.addEventListener("click", () => removeCompletedSession(breakTimerState));
-pageElements.break.addSessionBtn.addEventListener("click", () => addCompletedSession(breakTimerState));
-pageElements.break.removeMinBtn.addEventListener("click", () => removeMinute(breakTimerState));
-pageElements.break.addMinBtn.addEventListener("click", () => addMinute(breakTimerState));
+// Helper function to add event listeners for buttons
+const addListeners = (timerName, state) => {
+    for (const [btn, func] of Object.entries(btnActions)) {
+        pageElements[timerName][btn].addEventListener("click", () => func(state));
+    }
+};
+
+// Add event listeners for focus timer and break timer
+addListeners("focus", focusTimerState);
+addListeners("break", breakTimerState);
 
 // Add event listener for reset button
-pageElements.resetBtn.addEventListener("click", () => resetEverything());
+pageElements.resetBtn.addEventListener("click", resetEverything);
