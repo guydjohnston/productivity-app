@@ -26,10 +26,14 @@ h2 {
 }
 
 .timer {
-    font-size: 58px;
+    font-size: 56px;
     font-weight: bold;
     margin: 8px 0;
 }
+
+/* .previous-ending-times {
+
+} */
 
 button {
     padding: 4px;

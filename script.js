@@ -38,10 +38,7 @@ const pageElements = {
             hours: getById("current-ending-hours"),
             minutes: getById("current-ending-minutes")
         },
-        previous: {
-            hours: getById("previous-ending-hours"),
-            minutes: getById("previous-ending-minutes")
-        }
+        previous: getById("previous-ending-times")
     },
     resetBtn: getById("reset-btn")
 };
@@ -88,22 +85,53 @@ const breakTimerState = new TimerState(
 // Global object to track current and previous ending times in milliseconds when all focus and break sessions will be finished
 const endingTime = {
     current: null,
-    previous: null
+    previous: []
 };
 
-// Update the time displayed for the current or previous ending time
+// Update the current and previous ending times displayed
 const updateEndingTimeDisplay = (type) => {
-    // If no current/previous ending time is set, display the ending time as unknown and exit this function
-    if (!endingTime[type]) {
-        pageElements.ending[type].hours.textContent = "??";
-        pageElements.ending[type].minutes.textContent = "??";
+    // If updating current ending time and it's null, display current ending time as unknown and exit this function
+    if (type === "current" && !endingTime.current) {
+        pageElements.ending.current.hours.textContent = "??";
+        pageElements.ending.current.minutes.textContent = "??";
         return;
     }
 
-    // Update display for ending time
-    const date = new Date(endingTime[type]);
-    pageElements.ending[type].hours.textContent = date.getHours().toString().padStart(2, "0");;
-    pageElements.ending[type].minutes.textContent = date.getMinutes().toString().padStart(2, "0");
+    // Update display for current ending time
+    if (type === "current") {
+        // Create date object from current ending time in milliseconds
+        const date = new Date(endingTime.current[0]);
+
+        // Update HTML text content using hours and minutes from date object
+        pageElements.ending.current.hours.textContent = date.getHours().toString().padStart(2, "0");
+        pageElements.ending.current.minutes.textContent = date.getMinutes().toString().padStart(2, "0");
+    }
+
+    // Update display for all previous ending times
+    else if (type === "previous") {
+        // Clear text from the HTML from the previous time this function was run
+        pageElements.ending.previous.innerHTML = "";
+
+        for (const [time, createdAt] of endingTime.previous) {
+            // Create date object for this previous ending time
+            const endingTimeDate = new Date(time);
+
+            // Create date object for time it was created at
+            const createdAtDate = new Date(createdAt);
+
+            // Text to insert into HTML for ending time
+            const hoursText = endingTimeDate.getHours().toString().padStart(2, "0");
+            const minutesText = endingTimeDate.getMinutes().toString().padStart(2, "0");
+
+            // Text to insert into HTML for time it was created at
+            const createdAtHoursText = createdAtDate.getHours().toString().padStart(2, "0");
+            const createdAtMinutesText = createdAtDate.getMinutes().toString().padStart(2, "0");
+
+            // Add text to the HTML for each entry in the array of previous ending times
+            pageElements.ending.previous.innerHTML +=
+                `<p>${hoursText}:${minutesText} created at ${createdAtHoursText}:${createdAtMinutesText}</p>`;
+        }
+    }
 };
 
 // Save all relevant timer data to local storage
@@ -134,15 +162,15 @@ const loadTimerState = (state) => {
 };
 
 // Save object with current and previous ending times to local storage
-const saveEndingTime = () => {
+const saveEndingTimes = () => {
     localStorage.setItem("endingTime", JSON.stringify(endingTime));
 };
 
 // Load object with current and previous ending times from local storage
-const loadEndingTime = () => {
+const loadEndingTimes = () => {
     // Load object with current and previous ending times from local storage
     const endingTimeLoaded = JSON.parse(localStorage.getItem("endingTime"));
-    
+
     // Update ending times using values loaded from local storage
     Object.assign(endingTime, endingTimeLoaded);
 };
@@ -160,11 +188,8 @@ const updateCountdownDisplay = (state, msToDisplay) => {
 // Update the visual markers on the page to show the number of focus or break sessions completed
 const updateSessionsDisplay = (state) => {
     state.sessionMarkers.forEach((marker, index) => {
-        if (index < state.sessionsCompleted) {
-            marker.classList.add("completed");
-        } else {
-            marker.classList.remove("completed");
-        };
+        if (index < state.sessionsCompleted) marker.classList.add("completed");
+        else marker.classList.remove("completed");
     });
 };
 
@@ -187,20 +212,25 @@ const fullyResetTimer = (state) => {
     saveTimerState(state);
 };
 
+// Helper function for saving ending times and updating displays for current and previous ending times
+const saveAndDisplayEndingTimes = () => {
+    saveEndingTimes();
+    updateEndingTimeDisplay("current");
+    updateEndingTimeDisplay("previous");
+}
+
 // Fully reset the whole application, including the states of both timers and current and previous ending times
 const resetEverything = () => {
     // Reset focus and break timers
     fullyResetTimer(focusTimerState);
     fullyResetTimer(breakTimerState);
 
-    // Unset current and previous ending times, 
+    // Unset current ending time and empty array of previous ending times
     endingTime.current = null;
-    endingTime.previous = null;
+    endingTime.previous = [];
 
     // Save ending time data to local storage and update displays
-    saveEndingTime();
-    updateEndingTimeDisplay("current");
-    updateEndingTimeDisplay("previous");
+    saveAndDisplayEndingTimes();
 }
 
 // Finish the working day and reset both timers when the final focus session is completed
@@ -208,12 +238,10 @@ const finalFocusSessionCompleted = () => {
     // Alert the user by vibrating the device (if the device supports it)
     if ("vibrate" in navigator) {
         navigator.vibrate([500, 500, 500]);
-        console.log("Vibrating the device - it's time to start working again");
-    } else console.log("This device doesn't support vibration");
+    }
 
     alert("Focus time completed for today!");
 
-    // Reset everything
     resetEverything();
 };
 
@@ -244,8 +272,7 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
     // Alert the user by vibrating the device (if the device supports it)
     if ("vibrate" in navigator) {
         navigator.vibrate([500, 500, 500]);
-        console.log("Vibrating the device - it's time to start working again");
-    } else console.log("This device doesn't support vibration");
+    }
 
     // Update number of sessions completed and sessions display for both timers
     breakTimerState.sessionsCompleted += breakSessionsCompleted;
@@ -279,8 +306,7 @@ const completeFocusSession = (timePastSessionEnd) => {
     // Alert the user by vibrating the device (if the device supports it)
     if ("vibrate" in navigator) {
         navigator.vibrate([500, 500, 500]);
-        console.log("Vibrating the device - it's time to take a break");
-    } else console.log("This device doesn't support vibration");
+    }
 
     // One focus session is always completed, work out how many more are completed (if any)
     const focusSessionsCompleted = 1 + Math.floor(timePastSessionEnd / focusTimerState.fullSessionMs);
@@ -372,16 +398,14 @@ const pauseTimer = (state) => {
 
     // Only if both timers are now paused (not switching from one timer to the other)
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
-        // If current ending time isn't null, set value of previous ending time to current ending time 
-        if(endingTime.current) endingTime.previous = endingTime.current;
+        // Add current ending time to list of previous ending times 
+        if (endingTime.current) endingTime.previous.push(endingTime.current);
 
         // Unset current ending time
         endingTime.current = null;
 
         // Save ending times to local storage and update the displays
-        saveEndingTime();
-        updateEndingTimeDisplay("current");
-        updateEndingTimeDisplay("previous");
+        saveAndDisplayEndingTimes();
     }
 }
 
@@ -409,19 +433,17 @@ const startTimer = (state) => {
 
     // Only if both timers were paused
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
-        // If current ending time isn't null, set value of previous ending time to current ending time 
-        if(endingTime.current) endingTime.previous = endingTime.current;
-
         // Work out how much time is left in the current session of both timers
         const currentSessionsTimeLeft = (state.sessionEndTime - currentTime) + otherState.msLeftInSession;
 
-        // Update current ending time based on time left in both current sessions and all sessions not yet started
-        endingTime.current = currentTime + currentSessionsTimeLeft + (state.totalSessions - state.sessionsCompleted - 1) * state.fullSessionMs + (otherState.totalSessions - otherState.sessionsCompleted - 1) * otherState.fullSessionMs;
+        // Set current ending time using time left in both current sessions and all sessions not yet started. Also save current time as the time when it was created
+        endingTime.current = [
+            currentTime + currentSessionsTimeLeft + (state.totalSessions - state.sessionsCompleted - 1) * state.fullSessionMs + (otherState.totalSessions - otherState.sessionsCompleted - 1) * otherState.fullSessionMs,
+            Date.now()
+        ];
 
         // Save updated ending times to local storage and update the displays
-        saveEndingTime();
-        updateEndingTimeDisplay("current");
-        updateEndingTimeDisplay("previous");
+        saveAndDisplayEndingTimes();
     }
 
     // Toggle timer to be running
@@ -487,16 +509,17 @@ const removeCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // If current ending time isn't null, set value of previous ending time to current ending time 
-        if(endingTime.current) endingTime.previous = endingTime.current;
-    
+        // Add current ending time and time it was created to array of previous ending times 
+        if (endingTime.current) endingTime.previous.push(endingTime.current);
+
         // Update current ending time by adding length of a full session
-        endingTime.current += state.fullSessionMs;
-    
+        endingTime.current[0] += state.fullSessionMs;
+
+        // Save current time as the time when current ending time was created
+        endingTime.current[1] = Date.now();
+
         // Save updated ending times to local storage and update the displays
-        saveEndingTime();
-        updateEndingTimeDisplay("current");
-        updateEndingTimeDisplay("previous");
+        saveAndDisplayEndingTimes();
     }
 };
 
@@ -517,16 +540,17 @@ const addCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // If current ending time isn't null, set value of previous ending time to current ending time 
-        if(endingTime.current) endingTime.previous = endingTime.current;
+        // Add current ending time to array of previous ending times 
+        if (endingTime.current) endingTime.previous.push(endingTime.current);
 
         // Update current ending time by removing the length of a full session
-        endingTime.current -= state.fullSessionMs;
+        endingTime.current[0] -= state.fullSessionMs;
+
+        // Save current time as the time when current ending time was created
+        endingTime.current[1] = Date.now();
 
         // Save updated ending times to local storage and update the displays
-        saveEndingTime();
-        updateEndingTimeDisplay("current");
-        updateEndingTimeDisplay("previous");
+        saveAndDisplayEndingTimes();
     }
 };
 
@@ -556,16 +580,17 @@ const removeMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // If current ending time isn't null, set value of previous ending time to current ending time 
-        if(endingTime.current) endingTime.previous = endingTime.current;
+        // Add current ending time to array of previous ending times 
+        if (endingTime.current) endingTime.previous.push(endingTime.current);
 
         // Update current ending time by removing a minute
-        endingTime.current -= msPerMinute;
+        endingTime.current[0] -= msPerMinute;
+
+        // Save current time as time when current ending time was created
+        endingTime.current[1] = Date.now();
 
         // Save updated ending times to local storage and update the displays
-        saveEndingTime();
-        updateEndingTimeDisplay("current");
-        updateEndingTimeDisplay("previous");
+        saveAndDisplayEndingTimes();
     }
 };
 
@@ -589,16 +614,17 @@ const addMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // If current ending time isn't null, set value of previous ending time to current ending time 
-        if(endingTime.current) endingTime.previous = endingTime.current;
+        // Add current ending time to array of previous ending times 
+        if (endingTime.current) endingTime.previous.push(endingTime.current);
 
         // Update current ending time by adding one minute
-        endingTime.current += msPerMinute;
+        endingTime.current[0] += msPerMinute;
+
+        // Save current time as time when current ending time was created
+        endingTime.current[1] = Date.now();
 
         // Save updated ending times to local storage and update displays
-        saveEndingTime();
-        updateEndingTimeDisplay("current");
-        updateEndingTimeDisplay("previous");
+        saveAndDisplayEndingTimes();
     }
 };
 
@@ -607,7 +633,7 @@ window.onload = (event) => {
     // Load data for both timers and ending time values from local storage
     loadTimerState(focusTimerState);
     loadTimerState(breakTimerState);
-    loadEndingTime();
+    loadEndingTimes();
 
     // If one of the timers was running, resume that timer
     if (focusTimerState.isTimerRunning) {
