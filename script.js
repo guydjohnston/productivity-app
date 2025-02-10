@@ -88,49 +88,47 @@ const endingTime = {
     previous: []
 };
 
-// Update the current and previous ending times displayed
-const updateEndingTimeDisplay = (type) => {
-    // If updating current ending time and it's null, display current ending time as unknown and exit this function
-    if (type === "current" && !endingTime.current) {
+// Update display of current ending time
+const updateCurrentEndingTimeDisplay = () => {
+    // If current ending is null, display current ending time as unknown and exit this function
+    if (!endingTime.current) {
         pageElements.ending.current.hours.textContent = "??";
         pageElements.ending.current.minutes.textContent = "??";
         return;
     }
 
-    // Update display for current ending time
-    if (type === "current") {
-        // Create date object from current ending time in milliseconds
-        const date = new Date(endingTime.current[0]);
+    // Create date object from current ending time in milliseconds
+    const date = new Date(endingTime.current[0]);
 
-        // Update HTML text content using hours and minutes from date object
-        pageElements.ending.current.hours.textContent = date.getHours().toString().padStart(2, "0");
-        pageElements.ending.current.minutes.textContent = date.getMinutes().toString().padStart(2, "0");
-    }
+    // Update HTML text content using hours and minutes from date object
+    pageElements.ending.current.hours.textContent = date.getHours().toString().padStart(2, "0");
+    pageElements.ending.current.minutes.textContent = date.getMinutes().toString().padStart(2, "0");
+};
 
-    // Update display for all previous ending times
-    else if (type === "previous") {
-        // Clear text from the HTML from the previous time this function was run
-        pageElements.ending.previous.innerHTML = "";
+// Update display of previous ending times
+const updatePreviousEndingTimesDisplay = () => {
+    // Clear text from the HTML from the previous time this function was run
+    pageElements.ending.previous.innerHTML = "";
 
-        for (const [time, createdAt] of endingTime.previous) {
-            // Create date object for this previous ending time
-            const endingTimeDate = new Date(time);
+    // Iterate backwards through the array of previous ending times
+    for (const [time, createdAt] of [...endingTime.previous].reverse()) {
+        // Create date object for this previous ending time
+        const endingTimeDate = new Date(time);
 
-            // Create date object for time it was created at
-            const createdAtDate = new Date(createdAt);
+        // Create date object for time it was created at
+        const createdAtDate = new Date(createdAt);
 
-            // Text to insert into HTML for ending time
-            const hoursText = endingTimeDate.getHours().toString().padStart(2, "0");
-            const minutesText = endingTimeDate.getMinutes().toString().padStart(2, "0");
+        // Text to insert into HTML for ending time
+        const hoursText = endingTimeDate.getHours().toString().padStart(2, "0");
+        const minutesText = endingTimeDate.getMinutes().toString().padStart(2, "0");
 
-            // Text to insert into HTML for time it was created at
-            const createdAtHoursText = createdAtDate.getHours().toString().padStart(2, "0");
-            const createdAtMinutesText = createdAtDate.getMinutes().toString().padStart(2, "0");
+        // Text to insert into HTML for time it was created at
+        const createdAtHoursText = createdAtDate.getHours().toString().padStart(2, "0");
+        const createdAtMinutesText = createdAtDate.getMinutes().toString().padStart(2, "0");
 
-            // Add text to the HTML for each entry in the array of previous ending times
-            pageElements.ending.previous.innerHTML +=
-                `<p>${hoursText}:${minutesText} created at ${createdAtHoursText}:${createdAtMinutesText}</p>`;
-        }
+        // Add text to the HTML for each entry in the array of previous ending times
+        pageElements.ending.previous.innerHTML +=
+            `<p>${hoursText}:${minutesText} created at ${createdAtHoursText}:${createdAtMinutesText}</p>`;
     }
 };
 
@@ -166,13 +164,9 @@ const saveEndingTimes = () => {
     localStorage.setItem("endingTime", JSON.stringify(endingTime));
 };
 
-// Load object with current and previous ending times from local storage
+// Update ending times object using values loaded from local storage
 const loadEndingTimes = () => {
-    // Load object with current and previous ending times from local storage
-    const endingTimeLoaded = JSON.parse(localStorage.getItem("endingTime"));
-
-    // Update ending times using values loaded from local storage
-    Object.assign(endingTime, endingTimeLoaded);
+    Object.assign(endingTime, JSON.parse(localStorage.getItem("endingTime")));
 };
 
 // Update the minutes and seconds shown on the timer display
@@ -215,8 +209,8 @@ const fullyResetTimer = (state) => {
 // Helper function for saving ending times and updating displays for current and previous ending times
 const saveAndDisplayEndingTimes = () => {
     saveEndingTimes();
-    updateEndingTimeDisplay("current");
-    updateEndingTimeDisplay("previous");
+    updateCurrentEndingTimeDisplay();
+    updatePreviousEndingTimesDisplay();
 }
 
 // Fully reset the whole application, including the states of both timers and current and previous ending times
@@ -242,6 +236,7 @@ const finalFocusSessionCompleted = () => {
 
     alert("Focus time completed for today!");
 
+    // Reset the whole application
     resetEverything();
 };
 
@@ -398,8 +393,8 @@ const pauseTimer = (state) => {
 
     // Only if both timers are now paused (not switching from one timer to the other)
     if (!focusTimerState.isTimerRunning && !breakTimerState.isTimerRunning) {
-        // Add current ending time to list of previous ending times 
-        if (endingTime.current) endingTime.previous.push(endingTime.current);
+        // If current ending time isn't null, save a copy of it to array of previous ending times
+        if (endingTime.current) endingTime.previous.push([...endingTime.current]);
 
         // Unset current ending time
         endingTime.current = null;
@@ -488,8 +483,8 @@ const resumeRunningTimer = (state) => {
     updateSessionsDisplay(otherState);
 
     // Update ending time displays
-    updateEndingTimeDisplay("current");
-    updateEndingTimeDisplay("previous");
+    updateCurrentEndingTimeDisplay();
+    updatePreviousEndingTimesDisplay();
 
     // Continue updating the timer that's running recursively (which will also update its timer display)
     updateTimer(state);
@@ -509,8 +504,8 @@ const removeCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Add current ending time and time it was created to array of previous ending times 
-        if (endingTime.current) endingTime.previous.push(endingTime.current);
+        // Add copy of current ending time to array of previous ending times 
+        endingTime.previous.push([...endingTime.current]);
 
         // Update current ending time by adding length of a full session
         endingTime.current[0] += state.fullSessionMs;
@@ -540,8 +535,8 @@ const addCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Add current ending time to array of previous ending times 
-        if (endingTime.current) endingTime.previous.push(endingTime.current);
+        // Add copy of current ending time to array of previous ending times 
+        endingTime.previous.push([...endingTime.current]);
 
         // Update current ending time by removing the length of a full session
         endingTime.current[0] -= state.fullSessionMs;
@@ -580,8 +575,8 @@ const removeMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Add current ending time to array of previous ending times 
-        if (endingTime.current) endingTime.previous.push(endingTime.current);
+        // Add copy of current ending time to array of previous ending times 
+        endingTime.previous.push([...endingTime.current]);
 
         // Update current ending time by removing a minute
         endingTime.current[0] -= msPerMinute;
@@ -614,8 +609,9 @@ const addMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Add current ending time to array of previous ending times 
-        if (endingTime.current) endingTime.previous.push(endingTime.current);
+        // Add copy of current ending time to array of previous ending times 
+        // if (endingTime.current)
+        endingTime.previous.push([...endingTime.current]);
 
         // Update current ending time by adding one minute
         endingTime.current[0] += msPerMinute;
@@ -647,7 +643,7 @@ window.onload = (event) => {
         updateCountdownDisplay(breakTimerState, breakTimerState.msLeftInSession);
         updateSessionsDisplay(focusTimerState);
         updateSessionsDisplay(breakTimerState);
-        updateEndingTimeDisplay("previous");
+        updatePreviousEndingTimesDisplay();
     }
 };
 
