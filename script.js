@@ -527,47 +527,8 @@ const removeCompletedSession = (state) => {
 
 // Increase completed sessions of relevant timer by one
 const addCompletedSession = (state) => {
-    // If all sessions have been completed, don't add another session and exit this function
-    if (state.sessionsCompleted >= state.totalSessions) return;
-
-    // If there's only one focus session left, don't add another focus session and exit this function
-    if (state === focusTimerState && state.sessionsCompleted >= state.totalSessions - 1) return;
-
-    /* // If completing the final break session
-    if (state === breakTimerState && state.sessionsCompleted === state.totalSessions - 1) {
-        console.log("completing final break session");
-
-        // If break timer is running
-        if (state.isTimerRunning) {
-            // Update ending times by subtracting time left in current session from current ending time
-            const timeLeft = state.sessionEndTime - Date.now();
-            console.log(`time left in current break session in minutes is ${timeLeft / msPerMinute}`);
-            updateEndingTimes(-timeLeft);
-
-            // Start the focus timer (which also pauses the break timer)
-            startTimer(focusTimerState);
-        }
-        // Otherwise if break timer is paused
-        else {
-            // Update ending times by subtracting time left in current session from current ending time
-            updateEndingTimes(-state.msLeftInSession);
-        }
-        // Set time left in current session to zero
-        state.msLeftInSession = 0
-
-        // Update countdown display
-        updateCountdownDisplay(state, state.msLeftInSession);
-
-        // Update number of completed sessions and sessions display
-        state.sessionsCompleted++;
-        updateSessionsDisplay(state);
-
-        // Save updated data to local storage
-        saveTimerState(state);
-
-        // Exit this function
-        return;
-    } */
+    // If there's one or fewer of the relevant session left, don't add another one and exit this function
+    if (state.sessionsCompleted >= state.totalSessions - 1) return;
 
     // Update number of completed sessions and sessions display
     state.sessionsCompleted++;
