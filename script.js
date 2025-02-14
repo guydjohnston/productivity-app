@@ -629,7 +629,7 @@ const btnActions = {
     removeSessionBtn: removeCompletedSession,
     addSessionBtn: addCompletedSession,
     removeMinBtn: removeMinute,
-    addMinBtn: addMinute
+    // addMinBtn: addMinute
 };
 
 // Helper function to add event listeners for buttons
@@ -638,6 +638,39 @@ const addListeners = (timerName, state) => {
         pageElements[timerName][btn].addEventListener("click", () => func(state));
     }
 };
+
+// Booleans to track whether the button was pressed quickly without being held down
+let btnPressedQuickly;
+
+// Variables to capture the ids of the timeout and interval so they can be stopped later
+let timeoutId;
+let intervalId;
+
+const startRepeating = () => {
+    // Leave boolean as true if the timeout doesn't finish
+    btnPressedQuickly = true;
+    
+    // Wait a short amount of time before repeatedly adding more minutes
+    timeoutId = setTimeout(() => {
+        btnPressedQuickly = false;
+        
+        // Keep triggering the addMinute function at a set interval
+        intervalId = setInterval(() => addMinute(focusTimerState), 200);
+    }, 1000);
+};
+
+const stopRepeating = () => {
+    // Stop the timeout and interval
+    clearTimeout(timeoutId);
+    clearInterval(intervalId);
+
+    // Trigger the function once if the button was pressed quickly and not held down
+    if (btnPressedQuickly) addMinute(focusTimerState);
+};
+
+pageElements.focus.addMinBtn.addEventListener("pointerdown", startRepeating);
+pageElements.focus.addMinBtn.addEventListener("pointerup", stopRepeating);
+pageElements.focus.addMinBtn.addEventListener("pointercancel", stopRepeating);
 
 // Add event listeners for focus timer and break timer
 addListeners("focus", focusTimerState);
