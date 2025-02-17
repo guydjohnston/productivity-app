@@ -623,58 +623,70 @@ window.onload = (event) => {
     }
 };
 
-// Mapping of buttons to the functions they trigger
+// Mapping of buttons that can't be held down to the functions they trigger
 const btnActions = {
     timerBtn: startOrPauseTimer,
     removeSessionBtn: removeCompletedSession,
     addSessionBtn: addCompletedSession,
-    removeMinBtn: removeMinute,
-    // addMinBtn: addMinute
 };
 
-// Helper function to add event listeners for buttons
+// Add event listeners for buttons that can't be held down
 const addListeners = (timerName, state) => {
     for (const [btn, func] of Object.entries(btnActions)) {
         pageElements[timerName][btn].addEventListener("click", () => func(state));
     }
 };
+addListeners("focus", focusTimerState);
+addListeners("break", breakTimerState);
 
-// Booleans to track whether the button was pressed quickly without being held down
-let btnPressedQuickly;
+// Boolean to track whether the button was held down instead of being pressed quickly
+let btnHeldDown;
 
 // Variables to capture the ids of the timeout and interval so they can be stopped later
 let timeoutId;
 let intervalId;
 
-const startRepeating = () => {
-    // Leave boolean as true if the timeout doesn't finish
-    btnPressedQuickly = true;
+// Trigger the function once if the button is pressed quickly or keep triggering it if the button is held down
+const btnPressed = (func, state) => {
+    // Set boolean as false if the timeout doesn't finish
+    btnHeldDown = false;
     
     // Wait a short amount of time before repeatedly adding more minutes
     timeoutId = setTimeout(() => {
-        btnPressedQuickly = false;
+        // Set boolean to true to show button was held down
+        btnHeldDown = true;
         
-        // Keep triggering the addMinute function at a set interval
-        intervalId = setInterval(() => addMinute(focusTimerState), 200);
+        // While the button is still held down, keep triggering the relevant function at a set interval
+        intervalId = setInterval(() => func(state), 100);
     }, 1000);
 };
 
-const stopRepeating = () => {
+// Stop triggering the function when the button is released
+const btnReleased = (func, state) => {
     // Stop the timeout and interval
     clearTimeout(timeoutId);
     clearInterval(intervalId);
 
     // Trigger the function once if the button was pressed quickly and not held down
-    if (btnPressedQuickly) addMinute(focusTimerState);
+    if (!btnHeldDown) func(state);
 };
 
-pageElements.focus.addMinBtn.addEventListener("pointerdown", startRepeating);
-pageElements.focus.addMinBtn.addEventListener("pointerup", stopRepeating);
-pageElements.focus.addMinBtn.addEventListener("pointercancel", stopRepeating);
+// Mapping of buttons that can be held down to the functions they trigger
+const heldDownBtnActions = {
+    removeMinBtn: removeMinute,
+    addMinBtn: addMinute
+};
 
-// Add event listeners for focus timer and break timer
-addListeners("focus", focusTimerState);
-addListeners("break", breakTimerState);
+// Add event listeners for buttons that can be held down
+const addHeldDownListeners = (timerName, state) => {
+    for (const [btn, func] of Object.entries(heldDownBtnActions)) {
+        pageElements[timerName][btn].addEventListener("pointerdown", () => btnPressed(func, state));
+        pageElements[timerName][btn].addEventListener("pointerup", () => btnReleased(func, state));
+        pageElements[timerName][btn].addEventListener("pointercancel", () => btnReleased(func, state));
+    }
+};
+addHeldDownListeners("focus", focusTimerState);
+addHeldDownListeners("break", breakTimerState);
 
 // Add event listener for reset button
 pageElements.resetBtn.addEventListener("click", resetEverything);
