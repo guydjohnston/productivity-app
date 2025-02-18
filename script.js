@@ -7,10 +7,10 @@ const focusSessionsPerDay = 4;
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-// Two session types for creating the pageElements object
+// Two session types for creating references to HTML elements
 const sessionTypes = ["focus", "break"];
 
-// Mapping of variables to ids and class names of HTML elements
+// Mapping of ids and class names of HTML elements
 const pageElements = {
     ...Object.fromEntries(sessionTypes.map(type => [
         type,
@@ -35,7 +35,7 @@ const pageElements = {
     resetBtn: "reset-btn"
 };
 
-// Replace ids and class names with actual elements
+// Replace ids and class names with HTML elements
 const mapElements = (obj) => {
     for (const [key, value] of Object.entries(obj)) {
         // Replace class and id names with HTML objects 
