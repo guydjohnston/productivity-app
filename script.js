@@ -7,41 +7,50 @@ const focusSessionsPerDay = 4;
 const msPerSecond = 1000;
 const msPerMinute = 60 * msPerSecond;
 
-// Functions to identify HTML elements on the page by id and class
-const getById = (id) => document.getElementById(id);
-const getAllByClass = (className) => document.querySelectorAll(`.${className}`);
+// Two session types for creating the pageElements object
+const sessionTypes = ["focus", "break"];
 
-// Link to HTML elements to manipulate on the page
+// Mapping of variables to ids and class names of HTML elements
 const pageElements = {
-    focus: {
-        minutes: getById("focus-minutes"),
-        seconds: getById("focus-seconds"),
-        addSessionBtn: getById("add-focus-session-btn"),
-        removeSessionBtn: getById("remove-focus-session-btn"),
-        addMinBtn: getById("add-focus-min-btn"),
-        removeMinBtn: getById("remove-focus-min-btn"),
-        timerBtn: getById("focus-timer-btn"),
-        sessionMarkers: getAllByClass("focus-session-marker")
-    },
-    break: {
-        minutes: getById("break-minutes"),
-        seconds: getById("break-seconds"),
-        addSessionBtn: getById("add-break-session-btn"),
-        removeSessionBtn: getById("remove-break-session-btn"),
-        addMinBtn: getById("add-break-min-btn"),
-        removeMinBtn: getById("remove-break-min-btn"),
-        timerBtn: getById("break-timer-btn"),
-        sessionMarkers: getAllByClass("break-session-marker")
-    },
+    ...Object.fromEntries(sessionTypes.map(type => [
+        type,
+        {
+            minutes: `${type}-minutes`,
+            seconds: `${type}-seconds`,
+            addSessionBtn: `add-${type}-session-btn`,
+            removeSessionBtn: `remove-${type}-session-btn`,
+            addMinBtn: `add-${type}-min-btn`,
+            removeMinBtn: `remove-${type}-min-btn`,
+            timerBtn: `${type}-timer-btn`,
+            sessionMarkers: `.${type}-session-marker`
+        }
+    ])),
     ending: {
         current: {
-            hours: getById("current-ending-hours"),
-            minutes: getById("current-ending-minutes")
+            hours: "current-ending-hours",
+            minutes: "current-ending-minutes"
         },
-        previous: getById("previous-ending-times")
+        previous: "previous-ending-times"
     },
-    resetBtn: getById("reset-btn")
+    resetBtn: "reset-btn"
 };
+
+// Replace ids and class names with actual elements
+const mapElements = (obj) => {
+    for (const [key, value] of Object.entries(obj)) {
+        // Replace class and id names with HTML objects 
+        if (typeof value === "string") {
+            obj[key] = value.startsWith(".")
+                ? document.querySelectorAll(value)
+                : document.getElementById(value);
+        }
+        // Recursively map nested objects
+        else if (typeof value === "object") {
+            mapElements(value);
+        }
+    }
+};
+mapElements(pageElements);
 
 // Class for the focus and break timers
 class TimerState {
@@ -650,12 +659,12 @@ let intervalId;
 const btnPressed = (func, state) => {
     // Set boolean as false if the timeout doesn't finish
     btnHeldDown = false;
-    
+
     // Wait a short amount of time before repeatedly adding more minutes
     timeoutId = setTimeout(() => {
         // Set boolean to true to show button was held down
         btnHeldDown = true;
-        
+
         // While the button is still held down, keep triggering the relevant function at a set interval
         intervalId = setInterval(() => func(state), 100);
     }, 1000);
