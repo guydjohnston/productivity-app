@@ -106,8 +106,11 @@ const updateCurrentEndingTimeDisplay = () => {
         return;
     }
 
+    // Destructure array for current ending time
+    const [endingTimeValue, timeCreatedAt] = endingTime.current;
+
     // Create date object from current ending time in milliseconds
-    const date = new Date(endingTime.current[0]);
+    const date = new Date(endingTimeValue);
 
     // Update HTML text content using hours and minutes from date object
     pageElements.ending.current.hours.textContent = date.getHours().toString().padStart(2, "0");
@@ -180,10 +183,11 @@ const loadEndingTimes = () => {
 
 // Update the minutes and seconds shown on the timer display
 const updateCountdownDisplay = (state, msToDisplay) => {
+    // Convert milliseconds left in timer to minutes and seconds with a leading zero
     const minutesDisplayed = Math.floor(msToDisplay / msPerMinute).toString().padStart(2, "0");
     const secondsDisplayed = Math.floor((msToDisplay / msPerSecond) % 60).toString().padStart(2, "0");
 
-    // Update the focus timer display on the page
+    // Update text contents of HTML elements with numbers of minutes and seconds
     state.minutesElement.textContent = minutesDisplayed;
     state.secondsElement.textContent = secondsDisplayed;
 };
@@ -505,11 +509,17 @@ const updateEndingTimes = (msToAdd) => {
     // Add copy of current ending time to array of previous ending times 
     endingTime.previous.push([...endingTime.current]);
 
+    // Destructure array for current ending time
+    let [endingTimeValue, timeCreatedAt] = endingTime.current;
+
     // Update current ending time by adding amount of time in milliseconds passed to this function
-    endingTime.current[0] += msToAdd;
+    endingTimeValue += msToAdd;
 
     // Save current time as the time when current ending time was created
-    endingTime.current[1] = Date.now();
+    timeCreatedAt = Date.now();
+
+    // Update array for current ending time
+    endingTime.current = [endingTimeValue, timeCreatedAt];
 
     // Save updated ending times to local storage and update the displays
     saveAndDisplayEndingTimes();
@@ -553,24 +563,28 @@ const addCompletedSession = (state) => {
     }
 };
 
-// Remove a minute from the current session of the timer
+// Remove a minute from relevant timer
 const removeMinute = (state) => {
     if (state.isTimerRunning) {
+        // Work out current time once for each time it's used in this function
         const currentTime = Date.now();
 
         // If timer has a minute or less to go, do nothing and exit this function
-        if (state.sessionEndTime - currentTime <= msPerMinute) return;
+        if (state.sessionEndTime - currentTime  <= msPerMinute) return;
 
-        // Remove a minute from the timer
+        // If timer is running, remove a minute from end time of current session
         state.sessionEndTime -= msPerMinute;
+
+        // Update countdown display based on difference between session end time and current time
+        updateCountdownDisplay(state, state.sessionEndTime - currentTime);
     } else {
         // If timer has a minute or less to go, do nothing and exit this function
         if (state.msLeftInSession <= msPerMinute) return;
 
-        // Remove a minute from the timer
+        // If timer isn't running, remove a minute from time left in current session
         state.msLeftInSession -= msPerMinute;
 
-        // Update the countdown display and save updated data to local storage
+        // Update countdown display based on time left in current session
         updateCountdownDisplay(state, state.msLeftInSession);
     }
 
@@ -579,23 +593,23 @@ const removeMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Update ending times by subtracting a minute from the current ending time
+        // Update ending times by subtracting a minute from current ending time
         updateEndingTimes(-msPerMinute);
     }
 };
 
-// Add an extra minute to the current session of the timer
+// Add an extra minute to relevant timer
 const addMinute = (state) => {
     if (state.isTimerRunning) {
-        const currentTime = Date.now();
-        // Add one minute to the timer
+        // Add a minute to session end time if timer is running
         state.sessionEndTime += msPerMinute;
-        // Update the countdown display
-        updateCountdownDisplay(state, state.sessionEndTime - currentTime);
+
+        // Update countdown display based on difference between session end time and current time
+        updateCountdownDisplay(state, state.sessionEndTime - Date.now());
     } else {
-        // Add one minute to the timer
+        // Add a minute to time left in current session if timer isn't running
         state.msLeftInSession += msPerMinute;
-        // Update the countdown display
+        // Update countdown display based on time left in current session
         updateCountdownDisplay(state, state.msLeftInSession);
     }
 
@@ -604,7 +618,7 @@ const addMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Update ending times by adding a minute to the current ending time
+        // Update ending times by adding a minute to current ending time
         updateEndingTimes(msPerMinute);
     }
 };
