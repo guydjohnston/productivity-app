@@ -505,10 +505,13 @@ const resumeRunningTimer = (state) => {
 };
 
 // Helper function to update the current and previous ending times
-const updateEndingTimes = (msToAdd) => {
-    // Add copy of current ending time to array of previous ending times 
-    endingTime.previous.push([...endingTime.current]);
-
+const updateEndingTimes = (msToAdd, isPreviousEndingTimeLogged) => {
+    // Only if choosing to log previous ending time
+    if (isPreviousEndingTimeLogged) {
+        // Add copy of current ending time to array of previous ending times 
+        endingTime.previous.push([...endingTime.current]);
+    }
+    
     // Destructure array for current ending time
     let [endingTimeValue, timeCreatedAt] = endingTime.current;
 
@@ -539,8 +542,8 @@ const removeCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Update ending times by adding length of a full session to current ending time
-        updateEndingTimes(state.fullSessionMs);
+        // Update ending times (logging previous ending time) by adding length of a full session to current ending time
+        updateEndingTimes(state.fullSessionMs, true);
     }
 };
 
@@ -558,19 +561,19 @@ const addCompletedSession = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Update ending times by subtracting length of a full session from current ending time
-        updateEndingTimes(-state.fullSessionMs);
+        // Update ending times (logging previous ending time) by subtracting length of a full session from current ending time
+        updateEndingTimes(-state.fullSessionMs, true);
     }
 };
 
 // Remove a minute from relevant timer
-const removeMinute = (state) => {
+const removeMinute = (state, isPreviousEndingTimeLogged) => {
     if (state.isTimerRunning) {
         // Work out current time once for each time it's used in this function
         const currentTime = Date.now();
 
         // If timer has a minute or less to go, do nothing and exit this function
-        if (state.sessionEndTime - currentTime  <= msPerMinute) return;
+        if (state.sessionEndTime - currentTime <= msPerMinute) return;
 
         // If timer is running, remove a minute from end time of current session
         state.sessionEndTime -= msPerMinute;
@@ -593,13 +596,13 @@ const removeMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Update ending times by subtracting a minute from current ending time
-        updateEndingTimes(-msPerMinute);
+        // Update ending times (choosing whether or not to log previous time) by subtracting a minute from current ending time
+        updateEndingTimes(-msPerMinute, isPreviousEndingTimeLogged);
     }
 };
 
 // Add an extra minute to relevant timer
-const addMinute = (state) => {
+const addMinute = (state, isPreviousEndingTimeLogged) => {
     if (state.isTimerRunning) {
         // Add a minute to session end time if timer is running
         state.sessionEndTime += msPerMinute;
@@ -618,8 +621,8 @@ const addMinute = (state) => {
 
     // Only if one of the timers is running
     if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-        // Update ending times by adding a minute to current ending time
-        updateEndingTimes(msPerMinute);
+        // Update ending times (choosing whether or not to log previous ending time) by adding a minute to current ending time
+        updateEndingTimes(msPerMinute, isPreviousEndingTimeLogged);
     }
 };
 
@@ -679,8 +682,14 @@ const btnPressed = (func, state) => {
         // Set boolean to true to show button was held down
         btnHeldDown = true;
 
-        // While the button is still held down, keep triggering the relevant function at a set interval
-        intervalId = setInterval(() => func(state), 100);
+        // Only if one of the timers is running
+        if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
+            // Add current ending time to array of previous ending times
+            endingTime.previous.push([...endingTime.current]);
+        }
+
+        // While the button is still held down, keep triggering the relevant function (without logging previous ending time) at a set interval
+        intervalId = setInterval(() => func(state, false), 100);
     }, 1000);
 };
 
@@ -690,8 +699,8 @@ const btnReleased = (func, state) => {
     clearTimeout(timeoutId);
     clearInterval(intervalId);
 
-    // Trigger the function once if the button was pressed quickly and not held down
-    if (!btnHeldDown) func(state);
+    // Trigger the function once (logging previous ending time) if the button was pressed quickly and not held down
+    if (!btnHeldDown) func(state, true);
 };
 
 // Mapping of buttons that can be held down to the functions they trigger
