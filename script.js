@@ -466,7 +466,6 @@ const startTimer = (state) => {
     // Unset time left in current session until  timer is paused again
     state.msLeftInSession = null;
 
-
     // Update text on the relevant start/pause button
     state.btn.textContent = `Pause ${state.name} Timer`;
 
@@ -775,29 +774,3 @@ addHeldDownListeners("break", breakTimerState);
 
 // Add event listener for reset button
 pageElements.resetBtn.addEventListener("click", resetEverything);
-
-/*
-
-Two states:
-
-1. One of the timers is running:
-
-- Work out ending time, based on time left in current session of each timer and remaining sessions left
-- Work out time left in current session from ending time
-
-ending time === time left in focus session + time left in break session + length of focus sessions left + length of break sessions left
-
-time left in current session of running timer === ending time - length of focus sessions left - length of break sessions left - time left in session of timer not running
-
-2. Neither timer is running:
-
-- Save time left in current session of both timers
-- Keep track of numbers of complete sessions left for both timers
-
-When to change between the two states:
-
-- When starting one of the timers
-- When pausing one of the timers
-- When resetting both timers
-
-*/
