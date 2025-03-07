@@ -1,3 +1,65 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-app.js";
+import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/11.3.1/firebase-messaging.js";
+
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+    apiKey: "AIzaSyDxVk5TIkTcIMqOqSq30UmY-u9pSGgMxwg",
+    authDomain: "productivity-web-app-7c311.firebaseapp.com",
+    projectId: "productivity-web-app-7c311",
+    storageBucket: "productivity-web-app-7c311.firebasestorage.app",
+    messagingSenderId: "453476172621",
+    appId: "1:453476172621:web:d15861ed7e3f1810f0ad04",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+
+// Initialise Firebase Cloud Messaging and get a reference to the service
+const messaging = getMessaging(app);
+
+// Get FCM token
+const geFCMToken = async () => {
+    try {
+        const token = await getToken(messaging, { vapidKey: "YOUR_PUBLIC_VAPID_KEY" });
+
+        if (token) console.log("FCM Token:", token);
+        else console.log("No FCM token available.");
+    } catch (error) {
+        console.error("Error getting FCM token:", error);
+    }
+};
+
+// Request notification permission and get token
+const requestNotificationPermission = async () => {
+    const permission = await Notification.requestPermission();
+
+    if (permission === "granted") {
+        console.log("Notification permission granted.");
+        geFCMToken();
+    } else console.log("Notification permission denied.");
+}
+
+// Handle foreground notifications
+onMessage(messaging, (payload) => {
+    console.log("Message received:", payload);
+
+    // Show a notification manually
+    new Notification(payload.notification.title, {
+        body: payload.notification.body,
+        icon: "/icon.png",
+        vibrate: [200, 100, 200]
+    });
+});
+
+// Request permission when the page loads
+requestNotificationPermission();
+
+
 // Global configuration variables
 const focusSessionMinutes = 100;
 const focusToBreakRatio = 5;
