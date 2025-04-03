@@ -245,6 +245,12 @@ const finalFocusSessionCompleted = () => {
     if ("vibrate" in navigator) {
         navigator.vibrate([500, 500, 500]);
     }
+
+    // Alert the user
+    alert("Focus time completed for today!");
+
+    // Reset the whole application
+    resetEverything();
 };
 
 // Start the next session of the focus or break timer
