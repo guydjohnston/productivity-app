@@ -231,7 +231,7 @@ const resetEverything = () => {
     fullyResetTimer(focusTimerState);
     fullyResetTimer(breakTimerState);
 
-    // Unset current ending time (saving time it was set to null) and empty array of previous ending times
+    // Unset current ending time (saving time when it was unset) and empty array of previous ending times
     endingTime.current = [null, Date.now()];
     endingTime.previous = [];
 
@@ -431,9 +431,6 @@ const pauseTimer = (state, isEndingTimeUnset) => {
 
     // Only if choosing to unset ending time
     if (isEndingTimeUnset) {
-        // If current ending time isn't null, save a copy of current ending time to array of previous ending times
-        if (endingTime.current[0]) endingTime.previous.push([...endingTime.current]);
-
         // Unset current ending time and save current time as time when it was set to null
         endingTime.current = [null, Date.now()];
 
@@ -470,6 +467,9 @@ const startTimer = (state) => {
 
         // Set ending time just calculated as current ending time and save the time when it was created 
         endingTime.current = [newEndingTime, currentTime];
+
+        // Add current ending time and time it was created to list of previous ending times
+        endingTime.previous.push([...endingTime.current]);
 
         // Save updated ending times to local storage and update the displays
         saveAndDisplayEndingTimes();
@@ -527,12 +527,6 @@ const resumeRunningTimer = (state) => {
 
 // Helper function to update the current and previous ending times
 const updateEndingTimes = (msToAdd, isPreviousEndingTimeLogged) => {
-    // Only if choosing to log previous ending time
-    if (isPreviousEndingTimeLogged) {
-        // Add copy of current ending time to array of previous ending times 
-        endingTime.previous.push([...endingTime.current]);
-    }
-
     // Destructure array for current ending time
     let [endingTimeValue, timeCreatedAt] = endingTime.current;
 
@@ -544,6 +538,12 @@ const updateEndingTimes = (msToAdd, isPreviousEndingTimeLogged) => {
 
     // Update array for current ending time
     endingTime.current = [endingTimeValue, timeCreatedAt];
+
+    // Only if choosing to log previous ending time
+    if (isPreviousEndingTimeLogged) {
+        // Add current ending time and time it was created to list of previous ending times 
+        endingTime.previous.push([...endingTime.current]);
+    }
 
     // Save updated ending times to local storage and update the displays
     saveAndDisplayEndingTimes();
@@ -713,29 +713,14 @@ const addListeners = (timerName, state) => {
 addListeners("focus", focusTimerState);
 addListeners("break", breakTimerState);
 
-// Boolean to track whether the button was held down instead of being pressed quickly
-let btnHeldDown;
-
 // Variables to capture the ids of the timeout and interval so they can be stopped later
 let timeoutId;
 let intervalId;
 
 // Trigger the function once if the button is pressed quickly or keep triggering it if the button is held down
 const btnPressed = (func, state) => {
-    // Set boolean as false if the timeout doesn't finish
-    btnHeldDown = false;
-
     // Wait a short amount of time before repeatedly adding more minutes
     timeoutId = setTimeout(() => {
-        // Set boolean to true to show button was held down
-        btnHeldDown = true;
-
-        // Only if one of the timers is running
-        if (focusTimerState.isTimerRunning || breakTimerState.isTimerRunning) {
-            // Add current ending time to array of previous ending times
-            endingTime.previous.push([...endingTime.current]);
-        }
-
         // While the button is still held down, keep triggering the relevant function (without logging previous ending time) at a set interval
         intervalId = setInterval(() => func(state, false), 100);
     }, 1000);
@@ -747,8 +732,8 @@ const btnReleased = (func, state) => {
     clearTimeout(timeoutId);
     clearInterval(intervalId);
 
-    // Trigger the function once (logging previous ending time) if the button was pressed quickly and not held down
-    if (!btnHeldDown) func(state, true);
+    // Trigger the function once, logging previous ending time
+    func(state, true);
 };
 
 // Mapping of buttons that can be held down to the functions they trigger
