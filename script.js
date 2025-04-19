@@ -315,8 +315,8 @@ const breakTimerToFocusTimer = (breakSessionsCompleted, focusSessionsCompleted) 
     saveTimerState(breakTimerState);
     saveTimerState(focusTimerState);
 
-    // Start next focus session
-    startTimer(focusTimerState);
+    // Start next focus session without setting new ending time
+    startTimer(focusTimerState, false);
 };
 
 // Determine what to do next when a focus session ends
@@ -373,6 +373,7 @@ const calculateCurrentSessionEndTime = (state) => {
     // Work out and return ending time for current session of this timer
     const currentSessionEndTime = endingTime.current[0] - otherState.msLeftInSession - (futureSessionsOfThisTimer * state.fullSessionMs) - (futureSessionsOfOtherTimer * otherState.fullSessionMs);
 
+    // Return result calculated
     return currentSessionEndTime;
 };
 
@@ -440,7 +441,7 @@ const pauseTimer = (state, isEndingTimeUnset) => {
 }
 
 // Start or resume the relevant timer
-const startTimer = (state) => {
+const startTimer = (state, isNewEndingTimeSet) => {
     // If all sessions have been completed, do nothing and exit this function
     if (state.allSessionsCompleted) return;
 
@@ -458,21 +459,26 @@ const startTimer = (state) => {
             pauseTimer(otherState, false);
         }
     } else { // If other timer isn't running
-        // Work out future sessions remaining for both timers, not including the current sessions (it can't be less than zero)
-        const futureSessionsOfThisTimer = Math.max((state.totalSessions - state.sessionsCompleted - 1), 0);
-        const futureSessionsOfOtherTimer = Math.max((otherState.totalSessions - otherState.sessionsCompleted - 1), 0);
-
-        // Work out new ending time by adding together current time, time left in current sessions of both timers and time left in future sessions of both timers
-        const newEndingTime = currentTime + state.msLeftInSession + otherState.msLeftInSession + (futureSessionsOfThisTimer * state.fullSessionMs) + (futureSessionsOfOtherTimer * otherState.fullSessionMs);
-
-        // Set ending time just calculated as current ending time and save the time when it was created 
-        endingTime.current = [newEndingTime, currentTime];
-
-        // Add current ending time and time it was created to list of previous ending times
-        endingTime.previous.push([...endingTime.current]);
-
-        // Save updated ending times to local storage and update the displays
-        saveAndDisplayEndingTimes();
+        // If choosing to set a new ending time
+        if (isNewEndingTimeSet) {
+            console.log(`setting new ending time`);
+            
+            // Work out future sessions remaining for both timers, not including the current sessions (it can't be less than zero)
+            const futureSessionsOfThisTimer = Math.max((state.totalSessions - state.sessionsCompleted - 1), 0);
+            const futureSessionsOfOtherTimer = Math.max((otherState.totalSessions - otherState.sessionsCompleted - 1), 0);
+    
+            // Work out new ending time by adding together current time, time left in current sessions of both timers and time left in future sessions of both timers
+            const newEndingTime = currentTime + state.msLeftInSession + otherState.msLeftInSession + (futureSessionsOfThisTimer * state.fullSessionMs) + (futureSessionsOfOtherTimer * otherState.fullSessionMs);
+    
+            // Set ending time just calculated as current ending time and save the time when it was created 
+            endingTime.current = [newEndingTime, currentTime];
+    
+            // Add current ending time and time it was created to list of previous ending times
+            endingTime.previous.push([...endingTime.current]);
+    
+            // Save updated ending times to local storage and update the displays
+            saveAndDisplayEndingTimes();
+        }
     }
 
     // Unset time left in current session until timer is paused again
@@ -495,9 +501,10 @@ const startTimer = (state) => {
 const startOrPauseTimer = (state) => {
     // Start or pause the timer, depending on whether it's already running
     if (!state.isTimerRunning) {
-        startTimer(state);
+        // Start the timer, setting a new ending time
+        startTimer(state, true);
     } else {
-        // When pausing the timer with this button, choose to unset ending time
+        // Pause the timer, unsetting the ending time
         pauseTimer(state, true);
     }
 };
